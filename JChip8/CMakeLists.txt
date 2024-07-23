@@ -47,13 +47,7 @@ elseif (CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
     target_link_options(${exe_name} PRIVATE)
 endif()
 
-
-if (CMAKE_VERSION VERSION_GREATER 3.12)
-  set_property(TARGET JChip8 PROPERTY CXX_STANDARD 20)
-endif()
-
 target_include_directories(${exe_name} PRIVATE "include")
 
 find_package(SDL2 REQUIRED)
-
 target_link_libraries(${exe_name} PRIVATE SDL2::SDL2 SDL2::SDL2main)

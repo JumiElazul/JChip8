@@ -4,24 +4,26 @@
 
 int main(int argc, char* argv[])
 {
-    sdl2_handler sdl_handler;
+    sdl2_handler sdl_handler(10.0f);
     JChip8 chip8;
 
-    chip8.initialize();
-    chip8.load_game("pong");
+    chip8.load_game("roms/IBMLogo.ch8");
 
     std::uint32_t time = 0;
-    while (time < 500)
+    while (chip8.state() != emulator_state::quit)
     {
+        if (chip8.state() == emulator_state::paused)
+            continue;
+
+        sdl_handler.handle_input(chip8);
         time = sdl_handler.time();
         chip8.emulate_cycle();
 
-        //if (chip8.draw_flag)
-        //{
-        //    draw_graphics();
-        //}
-
-        chip8.set_keys();
+        if (chip8.draw_flag())
+        {
+            std::pair<unsigned char*, unsigned short> gfx = chip8.graphics();
+            sdl_handler.draw_graphics(gfx.first, gfx.second);
+        }
     }
 
     return 0;
