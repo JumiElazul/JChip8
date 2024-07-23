@@ -3,18 +3,16 @@
 #include <iostream>
 
 JChip8::JChip8()
-    : _memory{ 0 }
-    , _V{ 0 }
-    , _pc{ 0x200 }
-    , _graphics{ 0 }
-    , _stack{ 0 }
-    , _sp{ 0 }
-    , _delay_timer{ 0 }
-    , _sound_timer{ 0 }
-    , _I{ 0 }
-    , _keypad{ 0 }
-    , _ips{ 700 }
-    , _draw_flag{ false }
+    : memory{ 0 }
+    , V{ 0 }
+    , pc{ 0x200 }
+    , graphics{ 0 }
+    , stack{ 0 }
+    , sp{ 0 }
+    , delay_timer{ 0 }
+    , sound_timer{ 0 }
+    , I{ 0 }
+    , keypad{ 0 }
 {
     load_fontset();
 }
@@ -27,23 +25,28 @@ void JChip8::emulate_cycle()
     decode_opcode(op);
 
     // Update timers
-    if (_delay_timer > 0)
-        --_delay_timer;
+    if (delay_timer > 0)
+        --delay_timer;
 
-    if (_sound_timer > 0)
+    if (sound_timer > 0)
     {
-        if (_sound_timer == 1)
+        if (sound_timer == 1)
         {
             std::cout << "BEEP!\n";
         }
-        --_sound_timer;
+        --sound_timer;
     }
 }
 
 opcode JChip8::fetch_opcode()
 {
-    opcode code = _memory[_pc] << 8 | _memory[_pc + 1];
-    _pc += 2;
+    opcode code = memory[pc] << 8 | memory[pc + 1];
+    pc += 2;
+
+    // TEMP
+    if (pc > MEMORY_SIZE)
+        pc = 0x200;
+
     return code;
 }
 
@@ -54,8 +57,8 @@ void JChip8::decode_opcode(opcode op)
         case 0xA000:
         {
 
-            _I = op & 0x0FFF;
-            _pc += 2;
+            I = op & 0x0FFF;
+            pc += 2;
             break;
         }
     }
@@ -69,27 +72,23 @@ void JChip8::load_game(const char* game)
 
     file.seekg(0, std::ios::end);
     size_t size = file.tellg();
+
+    if (size > (MEMORY_SIZE - 0x200)) throw std::runtime_error("File too large to fit in memory");
+
     file.seekg(0, std::ios::beg);
 
     for (size_t i = 0; i < size; ++i)
     {
-        _memory[0x200 + i] = file.get();
+        memory[0x200 + i] = file.get();
     }
 }
 
-bool JChip8::draw_flag() const noexcept { return _draw_flag; }
-
-std::pair<unsigned char*, unsigned short> JChip8::graphics() noexcept
+void JChip8::clear_screen()
 {
-    return std::make_pair<unsigned char*, unsigned short>(_graphics, GRAPHICS_WIDTH * GRAPHICS_HEIGHT);
-}
-
-emulator_state JChip8::state() const noexcept { return _state; }
-void JChip8::set_state(emulator_state state) { _state = state; }
-
-void JChip8::set_key(unsigned char key, bool pressed)
-{
-    pressed ? _keypad[key] = 1 : _keypad[key] = 0;
+    for (int i = 0; i < GRAPHICS_WIDTH * GRAPHICS_HEIGHT; ++i)
+    {
+        graphics[i] = 0;
+    }
 }
 
 void JChip8::load_fontset()
@@ -116,14 +115,7 @@ void JChip8::load_fontset()
 
     for (int i = 0; i < 80; ++i)
     {
-        _memory[0x050 + i] = fontset[i];
+        memory[0x050 + i] = fontset[i];
     }
 }
 
-void JChip8::clear_screen()
-{
-    for (int i = 0; i < GRAPHICS_WIDTH * GRAPHICS_HEIGHT; ++i)
-    {
-        _graphics[i] = 0;
-    }
-}

@@ -10,19 +10,19 @@ int main(int argc, char* argv[])
     chip8.load_game("roms/IBMLogo.ch8");
 
     std::uint32_t time = 0;
-    while (chip8.state() != emulator_state::quit)
+    while (chip8.state != emulator_state::quit)
     {
-        if (chip8.state() == emulator_state::paused)
+        if (chip8.state == emulator_state::paused)
             continue;
 
         sdl_handler.handle_input(chip8);
         time = sdl_handler.time();
         chip8.emulate_cycle();
 
-        if (chip8.draw_flag())
+        if (chip8.draw_flag)
         {
-            std::pair<unsigned char*, unsigned short> gfx = chip8.graphics();
-            sdl_handler.draw_graphics(gfx.first, gfx.second);
+            unsigned char* gfx = chip8.graphics;
+            sdl_handler.draw_graphics(gfx, GRAPHICS_WIDTH * GRAPHICS_HEIGHT);
         }
     }
 

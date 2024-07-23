@@ -32,35 +32,28 @@ enum class emulator_state
 class JChip8
 {
 public:
+    unsigned char memory[MEMORY_SIZE];
+    unsigned char V[16];
+    unsigned short pc;
+    unsigned char graphics[GRAPHICS_WIDTH * GRAPHICS_HEIGHT];
+    unsigned short stack[16];
+    unsigned short sp;
+    unsigned char delay_timer;
+    unsigned char sound_timer;
+    unsigned short I;
+    unsigned char keypad[16];
+    emulator_state state;
+
     JChip8();
 
     void emulate_cycle();
     opcode fetch_opcode();
     void decode_opcode(opcode op);
     void load_game(const char* game);
-    bool draw_flag() const noexcept;
-    std::pair<unsigned char*, unsigned short> graphics() noexcept;
-    emulator_state state() const noexcept;
-    void set_state(emulator_state state);
-    void set_key(unsigned char key, bool pressed);
+    void clear_screen();
 
 private:
-    unsigned char _memory[MEMORY_SIZE];
-    unsigned char _V[16];
-    unsigned short _pc;
-    unsigned char _graphics[GRAPHICS_WIDTH * GRAPHICS_HEIGHT];
-    unsigned short _stack[16];
-    unsigned short _sp;
-    unsigned char _delay_timer;
-    unsigned char _sound_timer;
-    unsigned short _I;
-    unsigned char _keypad[16];
-    unsigned short _ips;
-    bool _draw_flag;
-    emulator_state _state;
-
     void load_fontset();
-    void clear_screen();
  };
 
 #endif
