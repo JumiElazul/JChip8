@@ -19,11 +19,11 @@ int main(int argc, char* argv[])
         time = sdl_handler.time();
         chip8.emulate_cycle();
 
-        if (chip8.draw_flag)
-        {
-            unsigned char* gfx = chip8.graphics;
-            sdl_handler.draw_graphics(gfx, GRAPHICS_WIDTH * GRAPHICS_HEIGHT);
-        }
+        //if (chip8.draw_flag)
+        //{
+        //    unsigned char* gfx = chip8.graphics;
+        //    sdl_handler.draw_graphics(gfx, GRAPHICS_WIDTH * GRAPHICS_HEIGHT);
+        //}
     }
 
     return 0;

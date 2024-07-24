@@ -1,6 +1,6 @@
-#include <utility>
 #ifndef JUMI_JCHIP8_H
 #define JUMI_JCHIP8_H
+#include <array>
 
 //0x000-0x1FF - Chip 8 interpreter (contains font set in emu)
 //0x050-0x0A0 - Used for the built in 4x5 pixel font set (0-F)
@@ -16,11 +16,20 @@
 //16 8-bit (one byte) general-purpose variable registers numbered 0 through F hexadecimal, ie. 0 through 15 in decimal, called V0 through VF
 //VF is also used as a flag register; many instructions will set it to either 1 or 0 based on some rule, for example using it as a carry flag
 
-using opcode = unsigned short;
-
 static constexpr unsigned short MEMORY_SIZE = 4096;
 static constexpr unsigned short GRAPHICS_WIDTH = 64;
 static constexpr unsigned short GRAPHICS_HEIGHT = 32;
+static constexpr unsigned int INSTRUCTION_MEMORY_SIZE = 1024;
+
+struct instruction
+{
+    unsigned short opcode;
+    unsigned short NNN;     // 12-bit value
+    unsigned char NN;       // 8-bit constant
+    unsigned char N;        // 4-bit constant
+    unsigned char X;        // 4-bit register identifier
+    unsigned char Y;        // 4-bit register identifier
+};
 
 enum class emulator_state
 {
@@ -35,7 +44,7 @@ public:
     unsigned char memory[MEMORY_SIZE];
     unsigned char V[16];
     unsigned short pc;
-    unsigned char graphics[GRAPHICS_WIDTH * GRAPHICS_HEIGHT];
+    bool graphics[GRAPHICS_WIDTH * GRAPHICS_HEIGHT];
     unsigned short stack[16];
     unsigned short sp;
     unsigned char delay_timer;
@@ -47,13 +56,16 @@ public:
     JChip8();
 
     void emulate_cycle();
-    opcode fetch_opcode();
-    void decode_opcode(opcode op);
+    instruction fetch_instruction();
+    void execute_instruction(instruction& instr);
     void load_game(const char* game);
-    void clear_screen();
 
 private:
+    std::array<std::pair<unsigned short, instruction>, INSTRUCTION_MEMORY_SIZE> _instruction_history;
+    unsigned int _instruction_pointer;
     void load_fontset();
+    void clear_screen();
+    void update_instruction_history(instruction& instr);
  };
 
 #endif
