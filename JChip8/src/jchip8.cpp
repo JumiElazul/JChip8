@@ -1,9 +1,9 @@
-#include "jchip8.h"
+﻿#include "jchip8.h"
 #include <fstream>
 #include <iostream>
 #include <iomanip>
 
-JChip8::JChip8()
+JChip8::JChip8(uint16 ips_)
     : memory{ 0 }
     , V{ 0 }
     , pc{ 0x200 }
@@ -15,10 +15,30 @@ JChip8::JChip8()
     , I{ 0 }
     , keypad{ 0 }
     , state{ emulator_state::running }
+    , ips{ ips_ }
+    , _draw_flag{ false }
     , _instruction_history{ }
     , _instruction_pointer{ 0 }
 {
     load_fontset();
+}
+
+bool JChip8::draw_flag() const noexcept { return _draw_flag; }
+
+instruction JChip8::fetch_instruction()
+{
+    instruction instr;
+    instr.opcode = static_cast<uint16>(memory[pc] << 8 | memory[pc + 1]);
+    instr.NNN    = static_cast<uint16>(instr.opcode & 0x0FFF);
+    instr.NN     = static_cast<uint8>(instr.opcode & 0x00FF);
+    instr.N      = static_cast<uint8>(instr.opcode & 0x000F);
+    instr.X      = static_cast<uint8>((instr.opcode & 0x0F00) >> 8);
+    instr.Y      = static_cast<uint8>((instr.opcode & 0x00F0) >> 4);
+
+    update_instruction_history(instr);
+    pc += 2;
+
+    return instr;
 }
 
 void JChip8::emulate_cycle()
@@ -38,22 +58,6 @@ void JChip8::emulate_cycle()
         }
         --sound_timer;
     }
-}
-
-instruction JChip8::fetch_instruction()
-{
-    instruction instr;
-    instr.opcode = memory[pc] << 8 | memory[pc + 1];
-    instr.NNN = instr.opcode & 0x0FFF;
-    instr.NN  = instr.opcode & 0x00FF;
-    instr.N   = instr.opcode & 0x000F;
-    instr.X   = (instr.opcode & 0x0F00) >> 8;
-    instr.Y   = (instr.opcode & 0x00F0) >> 4;
-
-    update_instruction_history(instr);
-    pc += 2;
-
-    return instr;
 }
 
 //0NNN Calls machine code routine (RCA 1802 for COSMAC VIP) at address NNN. Not necessary for most ROMs.[22]
@@ -78,7 +82,7 @@ instruction JChip8::fetch_instruction()
 void JChip8::execute_instruction(instruction& instr)
 {
 #ifndef NDEBUG
-    std::pair<unsigned short, instruction>& last_instruction = _instruction_history[_instruction_pointer - 1];
+    std::pair<uint16, instruction>& last_instruction = _instruction_history[_instruction_pointer - 1];
     std::cout << "Address: [0x" << std::uppercase << std::hex << std::setw(4) << std::setfill('0') << last_instruction.first
               << "]   Instruction: [0x" << std::setw(4) << std::setfill('0') << last_instruction.second.opcode
               << "]   Description: [";
@@ -161,7 +165,7 @@ void JChip8::execute_instruction(instruction& instr)
 
                 case 0x04:
                     std::cout << "8XY4 Vx += Vy Adds VY to VX. VF is set to 1 when there's an overflow, and to 0 when there is not.";
-                    unsigned short sum = V[instr.X] + V[instr.Y];
+                    uint16 sum = V[instr.X] + V[instr.Y];
                     if (sum > 0xFF)
                         V[0xF] = 1;
                     else
@@ -200,8 +204,42 @@ void JChip8::execute_instruction(instruction& instr)
         //                  Draw Instruction
         // --------------------------------------------------
         case 0x0D:
+        {
             std::cout << "Draws a sprite at coordinate (VX, VY) that has a width of 8 pixels and a height of N pixels.";
+            _draw_flag = true;
+            uint8 x_loc = instr.X;
+            uint8 y_loc = instr.Y;
+            const uint8 num_of_bytes = instr.N;
+            V[0x0F] = 0;
+
+            // Loop over N pixels height
+            for (uint8_t i = 0; i < num_of_bytes; ++i) 
+            {
+                // Get next byte of sprite data
+                const uint8_t sprite_data = memory[I + i];
+
+                // Loop over 8 pixels width
+                for (int8_t j = 7; j >= 0; --j) 
+                {
+                    // Get the state of the graphics array at the location
+                    uint8_t x = (x_loc + (7 - j)) % GRAPHICS_WIDTH;
+                    uint8_t y = (y_loc + i) % GRAPHICS_HEIGHT;
+                    bool* pixel = &graphics[y * GRAPHICS_WIDTH + x];
+
+                    // Test the memory address least significant bit to most one at a time
+                    const bool sprite_bit = (sprite_data & (1 << j)) != 0;
+
+                    // If they are both on, set the carry flag
+                    if (sprite_bit && *pixel) 
+                        V[0x0F] = 1;
+
+                    *pixel ^= sprite_bit;
+                }
+            }
+
+            pc += 2;
             break;
+        }
 
         // --------------------------------------------------
         //                  Draw Instruction
@@ -240,7 +278,7 @@ void JChip8::clear_screen()
 
 void JChip8::load_fontset()
 {
-    unsigned char fontset[80] =
+    uint8 fontset[80] =
     {
         0xF0, 0x90, 0x90, 0x90, 0xF0, // 0
         0x20, 0x60, 0x20, 0x20, 0x70, // 1
@@ -268,7 +306,7 @@ void JChip8::load_fontset()
 
 void JChip8::update_instruction_history(instruction& instr)
 {
-    std::pair<unsigned short, instruction> current_instr;
+    std::pair<uint16, instruction> current_instr;
     current_instr.first = pc;
     current_instr.second = instr;
 

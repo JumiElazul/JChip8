@@ -9,6 +9,7 @@ set(SOURCES
 set(HEADERS
     "include/jchip8.h"
     "include/sdl2_handler.h"
+    "include/typedefs.h"
 )
 
 add_executable(JChip8 ${SOURCES} ${HEADERS})

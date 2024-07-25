@@ -1,12 +1,12 @@
 #include "sdl2_handler.h"
 #include "JChip8.h"
+#include "typedefs.h"
 #include <SDL2/SDL.h>
 #include <iostream>
 
-sdl2_handler::sdl2_handler(float scale)
+sdl2_handler::sdl2_handler()
     : _window(nullptr)
     , _renderer(nullptr)
-    , _scale(scale)
 {
     if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO | SDL_INIT_TIMER | SDL_INIT_EVENTS) < 0)
     {
@@ -14,8 +14,8 @@ sdl2_handler::sdl2_handler(float scale)
         exit(1);
     }
 
-    int window_width = 64 * _scale;
-    int window_height = 32 * _scale;
+    int32 window_width = 640;
+    int32 window_height = 320;
 
     _window = SDL_CreateWindow("JChip8", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, window_width, window_height, SDL_WINDOW_SHOWN);
     if (!_window)
@@ -39,7 +39,7 @@ sdl2_handler::~sdl2_handler()
     SDL_Quit();
 }
 
-std::uint32_t sdl2_handler::time() const noexcept
+uint32 sdl2_handler::time() const noexcept
 {
     return SDL_GetTicks();
 }
@@ -47,23 +47,25 @@ std::uint32_t sdl2_handler::time() const noexcept
 SDL_Window* sdl2_handler::window() const noexcept { return _window; }
 SDL_Renderer* sdl2_handler::renderer() const noexcept { return _renderer; }
 
-void sdl2_handler::draw_graphics(unsigned char* graphics, size_t length)
+void sdl2_handler::draw_graphics(bool* graphics, size_t length)
 {
-    for (size_t i = 0; i < length; ++i)
+    SDL_Rect rect;
+
+    for (uint16 i = 0; i < length; ++i)
     {
         if (graphics[i] == 0)
             SDL_SetRenderDrawColor(_renderer, 0, 0, 0, 255);
         else
             SDL_SetRenderDrawColor(_renderer, 255, 255, 255, 255);
 
-        int x_origin = (i % 64) * _scale;
-        int y_origin = (i / 64) * _scale;
-        int width = _scale;
-        int height = _scale;
-
-        SDL_Rect rect = { x_origin, y_origin, width, height };
+        int32 x = i % 64;
+        int32 y = i / 64;
+        int32 rect_width = 10;
+        int32 rect_height = 10;
+        SDL_Rect rect = { x * rect_width, y * rect_height, rect_width, rect_height };
         SDL_RenderFillRect(_renderer, &rect);
     }
+    SDL_RenderPresent(_renderer);
 }
 
 void sdl2_handler::handle_input(JChip8& chip8)

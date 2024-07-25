@@ -1,6 +1,8 @@
-#ifndef JUMI_JCHIP8_H
-#define JUMI_JCHIP8_H
+#ifndef JUMI_JCHIP8_EMULATOR_H
+#define JUMI_JCHIP8_EMULATOR_H
 #include <array>
+#include <cstdint>
+#include "typedefs.h"
 
 //0x000-0x1FF - Chip 8 interpreter (contains font set in emu)
 //0x050-0x0A0 - Used for the built in 4x5 pixel font set (0-F)
@@ -16,19 +18,19 @@
 //16 8-bit (one byte) general-purpose variable registers numbered 0 through F hexadecimal, ie. 0 through 15 in decimal, called V0 through VF
 //VF is also used as a flag register; many instructions will set it to either 1 or 0 based on some rule, for example using it as a carry flag
 
-static constexpr unsigned short MEMORY_SIZE = 4096;
-static constexpr unsigned short GRAPHICS_WIDTH = 64;
-static constexpr unsigned short GRAPHICS_HEIGHT = 32;
-static constexpr unsigned int INSTRUCTION_MEMORY_SIZE = 1024;
+static constexpr uint16 MEMORY_SIZE = 4096;
+static constexpr uint16 GRAPHICS_WIDTH = 64;
+static constexpr uint16 GRAPHICS_HEIGHT = 32;
+static constexpr uint32 INSTRUCTION_MEMORY_SIZE = 1024;
 
 struct instruction
 {
-    unsigned short opcode;
-    unsigned short NNN;     // 12-bit value
-    unsigned char NN;       // 8-bit constant
-    unsigned char N;        // 4-bit constant
-    unsigned char X;        // 4-bit register identifier
-    unsigned char Y;        // 4-bit register identifier
+    uint16 opcode;
+    uint16 NNN;     // 12-bit value
+    uint8 NN;       // 8-bit constant
+    uint8 N;        // 4-bit constant
+    uint8 X;        // 4-bit register identifier
+    uint8 Y;        // 4-bit register identifier
 };
 
 enum class emulator_state
@@ -41,28 +43,31 @@ enum class emulator_state
 class JChip8
 {
 public:
-    unsigned char memory[MEMORY_SIZE];
-    unsigned char V[16];
-    unsigned short pc;
+    uint8 memory[MEMORY_SIZE];
+    uint8 V[16];
+    uint16 pc;
     bool graphics[GRAPHICS_WIDTH * GRAPHICS_HEIGHT];
-    unsigned short stack[16];
-    unsigned short sp;
-    unsigned char delay_timer;
-    unsigned char sound_timer;
-    unsigned short I;
-    unsigned char keypad[16];
+    uint16 stack[16];
+    uint16 sp;
+    uint8 delay_timer;
+    uint8 sound_timer;
+    uint16 I;
+    uint8 keypad[16];
     emulator_state state;
+    uint16 ips;
 
-    JChip8();
+    JChip8(uint16 ips_ = 700);
 
+    [[nodiscard]] bool draw_flag() const noexcept;
+    [[nodiscard]] instruction fetch_instruction();
     void emulate_cycle();
-    instruction fetch_instruction();
     void execute_instruction(instruction& instr);
     void load_game(const char* game);
 
 private:
-    std::array<std::pair<unsigned short, instruction>, INSTRUCTION_MEMORY_SIZE> _instruction_history;
-    unsigned int _instruction_pointer;
+    bool _draw_flag;
+    std::array<std::pair<uint16, instruction>, INSTRUCTION_MEMORY_SIZE> _instruction_history;
+    uint32 _instruction_pointer;
     void load_fontset();
     void clear_screen();
     void update_instruction_history(instruction& instr);
