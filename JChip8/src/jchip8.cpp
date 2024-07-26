@@ -70,13 +70,15 @@ bool JChip8::draw_flag() const noexcept { return _draw_flag; }
 
 instruction JChip8::fetch_instruction()
 {
-    instruction instr;
-    instr.opcode = static_cast<uint16>(memory[pc] << 8 | memory[pc + 1]);
-    instr.NNN    = static_cast<uint16>(instr.opcode & 0x0FFF);
-    instr.NN     = static_cast<uint8>(instr.opcode & 0x00FF);
-    instr.N      = static_cast<uint8>(instr.opcode & 0x000F);
-    instr.X      = static_cast<uint8>((instr.opcode & 0x0F00) >> 8);
-    instr.Y      = static_cast<uint8>((instr.opcode & 0x00F0) >> 4);
+    instruction instr
+    {
+        .opcode = static_cast<uint16>(memory[pc] << 8 | memory[pc + 1]),
+        .NNN    = static_cast<uint16>(instr.opcode & 0x0FFF),
+        .NN     = static_cast<uint8>(instr.opcode & 0x00FF),
+        .N      = static_cast<uint8>(instr.opcode & 0x000F),
+        .X      = static_cast<uint8>((instr.opcode & 0x0F00) >> 8),
+        .Y      = static_cast<uint8>((instr.opcode & 0x00F0) >> 4)
+    };
 
     return instr;
 }
@@ -126,7 +128,7 @@ void JChip8::emulate_cycle()
 
 void JChip8::execute_instruction(instruction& instr)
 {
-    switch ((instr.opcode >> 12) & 0x0F)
+    switch (instr.opcode >> 12)
     {
         case 0x00:
             if (instr.NN == 0xE0)
@@ -202,6 +204,7 @@ void JChip8::execute_instruction(instruction& instr)
                     break;
 
                 case 0x04:
+                {
                     std::cout << "8XY4 Vx += Vy Adds VY to VX. VF is set to 1 when there's an overflow, and to 0 when there is not.";
                     uint16 sum = V[instr.X] + V[instr.Y];
                     if (sum > 0xFF)
@@ -210,6 +213,22 @@ void JChip8::execute_instruction(instruction& instr)
                         V[0xF] = 0;
 
                     V[instr.X] = sum & 0xFF;
+                    break;
+                }
+
+                case 0x05:
+                    break;
+
+                case 0x06:
+                    break;
+
+                case 0x07:
+                    break;
+
+                case 0x0E:
+                    break;
+
+                default:
                     break;
             }
             
@@ -225,7 +244,7 @@ void JChip8::execute_instruction(instruction& instr)
             break;
 
         case 0x0A:
-            std::cout << "ANNN	Sets I to the address NNN.";
+            std::cout << "ANNN	Sets I to NNN.";
             I = instr.NNN;
             break;
 
@@ -243,40 +262,118 @@ void JChip8::execute_instruction(instruction& instr)
         // --------------------------------------------------
         case 0x0D:
         {
+            // DXYN
+            // Draws a sprite at coordinate (VX, VY) that has a width of 8 pixels and a height of N pixels.
+            // Each row of 8 pixels is read as bit-coded starting from memory location I; I value does not
+            // change after the execution of this instruction. As described above, VF is set to 1 if any screen
+            // pixels are flipped from set to unset when the sprite is drawn, and to 0 if that does not happen.
             std::cout << "Draws a sprite at coordinate (VX, VY) that has a width of 8 pixels and a height of N pixels.";
+            V[0xF] = 0;
             _draw_flag = true;
-            uint8 x_loc = V[instr.X];
-            uint8 y_loc = V[instr.Y];
-            const uint8 num_of_bytes = instr.N;
-            V[0x0F] = 0;
+            uint8 height = instr.N;
 
-            // Loop over N pixels height
-            for (uint8_t i = 0; i < num_of_bytes; ++i)
+            for (uint8 i = 0; i < height; ++i)
             {
-                // Get next byte of sprite data
-                const uint8_t sprite_data = memory[I + i];
+                uint8 sprite = memory[I + i];
+                uint8 row = (V[instr.Y] + i) % GRAPHICS_HEIGHT;
 
-                // Loop over 8 pixels width
-                for (int8_t j = 7; j >= 0; --j)
+                for (int8 j = 0; j < 8; ++j)
                 {
-                    // Get the state of the graphics array at the location
-                    uint8_t x = (x_loc + (7 - j)) % GRAPHICS_WIDTH;
-                    uint8_t y = (y_loc + i) % GRAPHICS_HEIGHT;
-                    bool* pixel = &graphics[y * GRAPHICS_WIDTH + x];
+                    uint8 bit = (sprite & 0x80) >> 7;
+                    uint8 col = (V[instr.X] + j) % GRAPHICS_WIDTH;
+                    uint16 offset = row * GRAPHICS_WIDTH + col;
 
-                    // Test the memory address least significant bit to most one at a time
-                    const bool sprite_bit = (sprite_data & (1 << j)) != 0;
+                    if (bit == 1)
+                    {
+                        if (graphics[offset] != 0)
+                        {
+                            graphics[offset] = 0;
+                            V[0xF] = 1;
+                        }
+                        else
+                        {
+                            graphics[offset] = 1;
+                        }
+                    }
 
-                    // If they are both on, set the carry flag
-                    if (sprite_bit && *pixel)
-                        V[0x0F] = 1;
-
-                    *pixel ^= sprite_bit;
+                    sprite <<= 1;
                 }
             }
 
             break;
         }
+
+        case 0x0E:
+            if (instr.NN == 0x9E)
+            {
+
+            }
+            else if (instr.NN == 0xA1)
+            {
+
+            }
+            break;
+
+        case 0x0F:
+            switch (instr.NN)
+            {
+                case 0x07:
+                    std::cout << "Setting Vx to value of delay timer";
+                    V[instr.X] = delay_timer;
+                    break;
+
+                case 0x0A:
+                    std::cout << "Awaiting key press, then storing in Vx (blocking, will not continue until keypress occurs)";
+                    break;
+
+                case 0x15:
+                    std::cout << "Sets the delay timer to Vx";
+                    delay_timer = V[instr.X];
+                    break;
+
+                case 0x18:
+                    std::cout << "Sets the sound timer to Vx";
+                    sound_timer = V[instr.X];
+                    break;
+
+                case 0x1E:
+                    std::cout << "Adds Vx to I.  Vf (carry flag) unaffected";
+                    I += V[instr.X];
+                    break;
+
+                case 0x29:
+                    std::cout << "Sets I to the location of the sprite for the character in Vx";
+                    break;
+
+                case 0x33:
+                    std::cout << "Stores the binary-coded decimal representation of VX, with the hundreds digit in memory at location in I, the tens digit at location I+1, and the ones digit at location I+2.";
+                    break;
+
+                case 0x55:
+                {
+                    std::cout << "Stores from V0 to VX (inclusive) into memory, starting at address I using offsets;  I is unchanged";
+                    uint8 len = instr.X;
+                    for (uint8 i = 0; i <= len; ++i)
+                    {
+                        memory[I + i] = V[i];
+                    }
+                    break;
+                }
+
+                case 0x65:
+                    std::cout << "Fills from V0 to VX (inclusive) from memory, starting at address I using offsets;  I is unchanged";
+                    uint8 len = instr.X;
+                    for (uint8 i = 0; i <= len; ++i)
+                    {
+                        V[i] = memory[I + i];
+                    }
+                    break;
+
+                default:
+                    std::cout << "Unimplemented 0x0F instruction";
+                    break;
+            }
+            break;
 
         // --------------------------------------------------
         //                  Draw Instruction
@@ -289,32 +386,20 @@ void JChip8::execute_instruction(instruction& instr)
     std::cout << "]\n";
 }
 
-void JChip8::load_game(const char* game)
+void JChip8::load_game(const ROM& rom)
 {
-    std::ifstream file(game, std::ios::binary);
-
+    std::ifstream file(rom.filepath, std::ios::binary);
     if (!file) throw std::runtime_error("Could not open file");
 
-    file.seekg(0, std::ios::end);
-    size_t size = file.tellg();
+    if (rom.size > (MEMORY_SIZE - 0x200)) throw std::runtime_error("File too large to fit in memory");
 
-    if (size > (MEMORY_SIZE - 0x200)) throw std::runtime_error("File too large to fit in memory");
-
-    file.seekg(0, std::ios::beg);
-
-    for (size_t i = 0; i < size; ++i)
+    for (size_t i = 0; i < rom.size; ++i)
     {
         memory[0x200 + i] = file.get();
     }
 }
 
 void JChip8::reset_draw_flag() { _draw_flag = false; }
-
-void JChip8::clear_graphics_buffer()
-{
-    memset(graphics, false, sizeof(graphics));
-    _draw_flag = true;
-}
 
 void JChip8::load_fontset()
 {
@@ -343,3 +428,10 @@ void JChip8::load_fontset()
         memory[0x050 + i] = fontset[i];
     }
 }
+
+void JChip8::clear_graphics_buffer()
+{
+    memset(graphics, false, sizeof(graphics));
+    _draw_flag = true;
+}
+

@@ -52,3 +52,9 @@ target_include_directories(${exe_name} PRIVATE "include")
 
 find_package(SDL2 REQUIRED)
 target_link_libraries(${exe_name} PRIVATE SDL2::SDL2 SDL2::SDL2main)
+
+add_custom_command(TARGET ${exe_name} PRE_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+    ${CMAKE_CURRENT_SOURCE_DIR}/roms
+    ${CMAKE_CURRENT_BINARY_DIR}/roms
+)

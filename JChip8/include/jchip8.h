@@ -2,6 +2,7 @@
 #define JUMI_JCHIP8_EMULATOR_H
 #include <array>
 #include <cstdint>
+#include <string>
 #include <utility>
 #include "typedefs.h"
 
@@ -38,6 +39,13 @@ enum class emulator_state
     running,
     paused,
     quit,
+};
+
+struct ROM
+{
+    std::string filepath;
+    std::string name;
+    uint16 size;
 };
 
 class instruction_history
@@ -79,7 +87,7 @@ public:
     [[nodiscard]] instruction fetch_instruction();
     void emulate_cycle();
     void execute_instruction(instruction& instr);
-    void load_game(const char* game);
+    void load_game(const ROM& rom);
     void reset_draw_flag();
 
 private:
