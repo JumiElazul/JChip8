@@ -361,6 +361,7 @@ void JChip8::execute_instruction(instruction& instr)
                 }
 
                 case 0x65:
+                {
                     std::cout << "Fills from V0 to VX (inclusive) from memory, starting at address I using offsets;  I is unchanged";
                     uint8 len = instr.X;
                     for (uint8 i = 0; i <= len; ++i)
@@ -368,6 +369,7 @@ void JChip8::execute_instruction(instruction& instr)
                         V[i] = memory[I + i];
                     }
                     break;
+                }
 
                 default:
                     std::cout << "Unimplemented 0x0F instruction";
