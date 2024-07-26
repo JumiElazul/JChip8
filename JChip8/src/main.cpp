@@ -6,12 +6,11 @@
 int main(int argc, char* argv[])
 {
     sdl2_handler sdl_handler;
-    JChip8* chip8 = new JChip8{ 5 };
+    JChip8* chip8 = new JChip8{ 700 };
     int16 frame_wait_time = 1000 / chip8->ips;
 
     chip8->load_game("roms/IBMLogo.ch8");
 
-    int32_t last_frame_time = sdl_handler.time();
     while (chip8->state != emulator_state::quit) 
     {
         int32_t frame_start_time = sdl_handler.time();
@@ -27,10 +26,9 @@ int main(int argc, char* argv[])
 
         if (chip8->draw_flag())
         {
-            bool* gfx = chip8->graphics;
-            sdl_handler.draw_graphics(gfx, 64 * 32);
+            sdl_handler.draw_graphics(*chip8);
+            chip8->reset_draw_flag();
         }
-
 
 
         int32_t frame_end_time = sdl_handler.time();

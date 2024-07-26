@@ -47,23 +47,24 @@ uint32 sdl2_handler::time() const noexcept
 SDL_Window* sdl2_handler::window() const noexcept { return _window; }
 SDL_Renderer* sdl2_handler::renderer() const noexcept { return _renderer; }
 
-void sdl2_handler::draw_graphics(bool* graphics, size_t length)
+void sdl2_handler::draw_graphics(JChip8& chip8)
 {
-    SDL_Rect rect;
+    bool* gfx = &chip8.graphics[0];
+    float scale_x = 640.0f / GRAPHICS_WIDTH;
+    float scale_y = 320.0f / GRAPHICS_HEIGHT;
+    uint16 gfx_size = GRAPHICS_WIDTH * GRAPHICS_HEIGHT;
+    SDL_Rect pixel;
 
-    for (uint16 i = 0; i < length; ++i)
+    for (uint16 i = 0; i < gfx_size; ++i)
     {
-        if (graphics[i] == 0)
-            SDL_SetRenderDrawColor(_renderer, 0, 0, 0, 255);
-        else
-            SDL_SetRenderDrawColor(_renderer, 255, 255, 255, 255);
+        if (gfx[i]) SDL_SetRenderDrawColor(_renderer, 255, 255, 255, 255);
+        else        SDL_SetRenderDrawColor(_renderer, 0, 0, 0, 255);
 
-        int32 x = i % 64;
-        int32 y = i / 64;
-        int32 rect_width = 10;
-        int32 rect_height = 10;
-        SDL_Rect rect = { x * rect_width, y * rect_height, rect_width, rect_height };
-        SDL_RenderFillRect(_renderer, &rect);
+        int32 x = i % GRAPHICS_WIDTH;
+        int32 y = i / GRAPHICS_WIDTH;
+        pixel = { static_cast<int>(x * scale_x), static_cast<int>(y * scale_y), static_cast<int>(scale_x), static_cast<int>(scale_y) };
+
+        SDL_RenderFillRect(_renderer, &pixel);
     }
     SDL_RenderPresent(_renderer);
 }

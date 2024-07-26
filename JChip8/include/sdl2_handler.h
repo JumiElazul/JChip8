@@ -21,7 +21,7 @@ public:
     std::uint32_t time() const noexcept;
     SDL_Window* window() const noexcept;
     SDL_Renderer* renderer() const noexcept;
-    void draw_graphics(bool* graphics, size_t length);
+    void draw_graphics(JChip8& chip8);
     void handle_input(JChip8& chip8);
 
 private:

@@ -2,6 +2,50 @@
 #include <fstream>
 #include <iostream>
 #include <iomanip>
+#include <utility>
+
+instruction_history::instruction_history() 
+    : _instructions{ }
+    , _ip{ MAX_INSTRUCTION_HISTORY - 1 }
+{
+}
+
+void instruction_history::add_instruction(uint16 memory_address, const instruction& instr)
+{
+    _ip = (_ip + 1) % MAX_INSTRUCTION_HISTORY;
+
+    std::pair<uint16, instruction> new_instr;
+    new_instr.first = memory_address;
+    new_instr.second = instr;
+
+    _instructions[_ip] = new_instr;
+}
+
+void instruction_history::log_last_instruction() const noexcept
+{
+    const std::pair<uint16, instruction>& last_instruction = _instructions[_ip];
+    std::ios_base::fmtflags flags = std::cout.flags();
+    std::cout << "Address: [0x" << std::uppercase << std::hex << std::setw(4) << std::setfill('0') << last_instruction.first
+              << "]   Instruction: [0x" << std::setw(4) << std::setfill('0') << last_instruction.second.opcode
+              << "]   Description: [";
+
+    std::cout.flags(flags);
+}
+
+const std::pair<uint16, instruction>& instruction_history::get_instruction(uint32 index) const
+{
+    if (index >= MAX_INSTRUCTION_HISTORY)
+        throw std::out_of_range("Index out of range");
+
+    return _instructions[index];
+}
+
+uint32 instruction_history::get_size() const noexcept { return MAX_INSTRUCTION_HISTORY; }
+
+void instruction_history::clear()
+{
+    std::fill(_instructions.begin(), _instructions.end(), std::make_pair<uint16, instruction>(0x00, instruction()));
+}
 
 JChip8::JChip8(uint16 ips_)
     : memory{ 0 }
@@ -18,7 +62,6 @@ JChip8::JChip8(uint16 ips_)
     , ips{ ips_ }
     , _draw_flag{ false }
     , _instruction_history{ }
-    , _instruction_pointer{ 0 }
 {
     load_fontset();
 }
@@ -35,15 +78,17 @@ instruction JChip8::fetch_instruction()
     instr.X      = static_cast<uint8>((instr.opcode & 0x0F00) >> 8);
     instr.Y      = static_cast<uint8>((instr.opcode & 0x00F0) >> 4);
 
-    update_instruction_history(instr);
-    pc += 2;
-
     return instr;
 }
 
 void JChip8::emulate_cycle()
 {
     instruction instr = fetch_instruction();
+    _instruction_history.add_instruction(pc, instr);
+    pc += 2;
+
+    _instruction_history.log_last_instruction();
+
     execute_instruction(instr);
 
     // Update timers
@@ -81,20 +126,13 @@ void JChip8::emulate_cycle()
 
 void JChip8::execute_instruction(instruction& instr)
 {
-#ifndef NDEBUG
-    std::pair<uint16, instruction>& last_instruction = _instruction_history[_instruction_pointer - 1];
-    std::cout << "Address: [0x" << std::uppercase << std::hex << std::setw(4) << std::setfill('0') << last_instruction.first
-              << "]   Instruction: [0x" << std::setw(4) << std::setfill('0') << last_instruction.second.opcode
-              << "]   Description: [";
-#endif
-
     switch ((instr.opcode >> 12) & 0x0F)
     {
         case 0x00:
             if (instr.NN == 0xE0)
             {
                 std::cout << "Clear screen";
-                clear_screen();
+                clear_graphics_buffer();
             }
             else if (instr.NN == 0xEE)
             {
@@ -207,19 +245,19 @@ void JChip8::execute_instruction(instruction& instr)
         {
             std::cout << "Draws a sprite at coordinate (VX, VY) that has a width of 8 pixels and a height of N pixels.";
             _draw_flag = true;
-            uint8 x_loc = instr.X;
-            uint8 y_loc = instr.Y;
+            uint8 x_loc = V[instr.X];
+            uint8 y_loc = V[instr.Y];
             const uint8 num_of_bytes = instr.N;
             V[0x0F] = 0;
 
             // Loop over N pixels height
-            for (uint8_t i = 0; i < num_of_bytes; ++i) 
+            for (uint8_t i = 0; i < num_of_bytes; ++i)
             {
                 // Get next byte of sprite data
                 const uint8_t sprite_data = memory[I + i];
 
                 // Loop over 8 pixels width
-                for (int8_t j = 7; j >= 0; --j) 
+                for (int8_t j = 7; j >= 0; --j)
                 {
                     // Get the state of the graphics array at the location
                     uint8_t x = (x_loc + (7 - j)) % GRAPHICS_WIDTH;
@@ -230,14 +268,13 @@ void JChip8::execute_instruction(instruction& instr)
                     const bool sprite_bit = (sprite_data & (1 << j)) != 0;
 
                     // If they are both on, set the carry flag
-                    if (sprite_bit && *pixel) 
+                    if (sprite_bit && *pixel)
                         V[0x0F] = 1;
 
                     *pixel ^= sprite_bit;
                 }
             }
 
-            pc += 2;
             break;
         }
 
@@ -271,9 +308,12 @@ void JChip8::load_game(const char* game)
     }
 }
 
-void JChip8::clear_screen()
+void JChip8::reset_draw_flag() { _draw_flag = false; }
+
+void JChip8::clear_graphics_buffer()
 {
     memset(graphics, false, sizeof(graphics));
+    _draw_flag = true;
 }
 
 void JChip8::load_fontset()
@@ -303,16 +343,3 @@ void JChip8::load_fontset()
         memory[0x050 + i] = fontset[i];
     }
 }
-
-void JChip8::update_instruction_history(instruction& instr)
-{
-    std::pair<uint16, instruction> current_instr;
-    current_instr.first = pc;
-    current_instr.second = instr;
-
-    _instruction_history[_instruction_pointer++] = current_instr;
-
-    if (_instruction_pointer >= INSTRUCTION_MEMORY_SIZE)
-        _instruction_pointer = 0;
-}
-
