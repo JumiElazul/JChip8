@@ -6,28 +6,28 @@
 int main(int argc, char* argv[])
 {
     sdl2_handler sdl_handler;
-    JChip8* chip8 = new JChip8{ 700 };
-    int16 frame_wait_time = 1000 / chip8->ips;
+    JChip8 chip8{ 1 };
+    int16 frame_wait_time = 1000 / chip8.ips;
 
-    chip8->load_game("roms/IBMLogo.ch8");
+    chip8.load_game("roms/IBMLogo.ch8");
 
-    while (chip8->state != emulator_state::quit) 
+    while (chip8.state != emulator_state::quit) 
     {
         int32_t frame_start_time = sdl_handler.time();
 
 
 
 
-        if (chip8->state == emulator_state::paused)
+        if (chip8.state == emulator_state::paused)
             continue;
 
-        sdl_handler.handle_input(*chip8);
-        chip8->emulate_cycle();
+        sdl_handler.handle_input(chip8);
+        chip8.emulate_cycle();
 
-        if (chip8->draw_flag())
+        if (chip8.draw_flag())
         {
-            sdl_handler.draw_graphics(*chip8);
-            chip8->reset_draw_flag();
+            sdl_handler.draw_graphics(chip8);
+            chip8.reset_draw_flag();
         }
 
 
@@ -37,6 +37,5 @@ int main(int argc, char* argv[])
             std::this_thread::sleep_for(std::chrono::milliseconds(frame_wait_time - frame_duration));
     }
 
-    delete chip8;
     return 0;
 }

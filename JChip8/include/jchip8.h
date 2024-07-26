@@ -22,7 +22,6 @@
 static constexpr uint16 MEMORY_SIZE = 4096;
 static constexpr uint16 GRAPHICS_WIDTH = 64;
 static constexpr uint16 GRAPHICS_HEIGHT = 32;
-static constexpr uint32 MAX_INSTRUCTION_HISTORY = 1024;
 
 struct instruction
 {
@@ -43,9 +42,10 @@ enum class emulator_state
 
 class instruction_history
 {
+static constexpr uint32 MAX_INSTRUCTION_HISTORY = 1024;
 public:
     instruction_history();
-    void add_instruction(uint16 memory_address, const instruction& instr);
+    void add_instruction(uint16 memory_address, instruction& instr);
     void log_last_instruction() const noexcept;
     [[nodiscard]] const std::pair<uint16, instruction>& get_instruction(uint32 index) const;
     [[nodiscard]] uint32 get_size() const noexcept;
@@ -73,6 +73,7 @@ public:
     uint16 ips;
 
     JChip8(uint16 ips_ = 700);
+    ~JChip8();
 
     [[nodiscard]] bool draw_flag() const noexcept;
     [[nodiscard]] instruction fetch_instruction();
@@ -83,7 +84,7 @@ public:
 
 private:
     bool _draw_flag;
-    instruction_history _instruction_history;
+    instruction_history* _instruction_history;
     void load_fontset();
     void clear_graphics_buffer();
  };

@@ -10,15 +10,10 @@ instruction_history::instruction_history()
 {
 }
 
-void instruction_history::add_instruction(uint16 memory_address, const instruction& instr)
+void instruction_history::add_instruction(uint16 memory_address, instruction& instr)
 {
     _ip = (_ip + 1) % MAX_INSTRUCTION_HISTORY;
-
-    std::pair<uint16, instruction> new_instr;
-    new_instr.first = memory_address;
-    new_instr.second = instr;
-
-    _instructions[_ip] = new_instr;
+    _instructions[_ip] = std::make_pair(memory_address, instr);
 }
 
 void instruction_history::log_last_instruction() const noexcept
@@ -61,9 +56,14 @@ JChip8::JChip8(uint16 ips_)
     , state{ emulator_state::running }
     , ips{ ips_ }
     , _draw_flag{ false }
-    , _instruction_history{ }
+    , _instruction_history{ new instruction_history() }
 {
     load_fontset();
+}
+
+JChip8::~JChip8()
+{
+    delete _instruction_history;
 }
 
 bool JChip8::draw_flag() const noexcept { return _draw_flag; }
@@ -84,10 +84,10 @@ instruction JChip8::fetch_instruction()
 void JChip8::emulate_cycle()
 {
     instruction instr = fetch_instruction();
-    _instruction_history.add_instruction(pc, instr);
+    _instruction_history->add_instruction(pc, instr);
     pc += 2;
 
-    _instruction_history.log_last_instruction();
+    _instruction_history->log_last_instruction();
 
     execute_instruction(instr);
 
