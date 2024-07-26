@@ -4,6 +4,7 @@
 #include <cstdint>
 #include <string>
 #include <utility>
+#include <random>
 #include "typedefs.h"
 
 //0x000-0x1FF - Chip 8 interpreter (contains font set in emu)
@@ -93,8 +94,10 @@ public:
 private:
     bool _draw_flag;
     instruction_history* _instruction_history;
+    std::mt19937 _rng;
     void load_fontset();
     void clear_graphics_buffer();
+    uint8 generate_random_number();
  };
 
 #endif

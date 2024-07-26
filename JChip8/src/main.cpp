@@ -54,11 +54,11 @@ std::unordered_map<std::string, ROM> load_default_roms()
 int main(int argc, char* argv[])
 {
     sdl2_handler sdl_handler;
-    JChip8 chip8{ 1 };
+    JChip8 chip8{ 8 };
     int16 frame_wait_time = 1000 / chip8.ips;
     std::unordered_map<std::string, ROM> roms = load_default_roms();
 
-    chip8.load_game(roms[rom1]);
+    chip8.load_game(roms[rom0]);
 
     while (chip8.state != emulator_state::quit) 
     {

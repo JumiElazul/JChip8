@@ -3,6 +3,8 @@
 #include <iostream>
 #include <iomanip>
 #include <utility>
+#include <random>
+#include <limits>
 
 instruction_history::instruction_history() 
     : _instructions{ }
@@ -57,6 +59,7 @@ JChip8::JChip8(uint16 ips_)
     , ips{ ips_ }
     , _draw_flag{ false }
     , _instruction_history{ new instruction_history() }
+    , _rng(std::random_device()())
 {
     load_fontset();
 }
@@ -217,7 +220,14 @@ void JChip8::execute_instruction(instruction& instr)
                 }
 
                 case 0x05:
+                {
+                    std::cout << "Subtract VY from VX.  VF is set to 0 when there's a borrow and 1 when there isn't.";
+                    uint8 x = instr.X;
+                    uint8 y = instr.Y;
+                    x > y ? V[0xF] = 1 : V[0xF] = 0;
+                    V[instr.X] -= V[instr.Y];
                     break;
+                }
 
                 case 0x06:
                     break;
@@ -435,5 +445,11 @@ void JChip8::clear_graphics_buffer()
 {
     memset(graphics, false, sizeof(graphics));
     _draw_flag = true;
+}
+
+uint8 JChip8::generate_random_number()
+{
+    static std::uniform_int_distribution<int> uid(0, std::numeric_limits<uint8>::max());
+    return uid(_rng);
 }
 
