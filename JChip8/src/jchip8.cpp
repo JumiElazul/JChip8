@@ -1,4 +1,7 @@
-﻿#include "jchip8.h"
+﻿#pragma warning(push)
+#pragma warning(disable:6385)
+
+#include "jchip8.h"
 #include <chrono>
 #include <filesystem>
 #include <fstream>
@@ -9,6 +12,7 @@
 #include <utility>
 #include <string>
 #include <vector>
+
 
 instruction_history::instruction_history() 
     : _instructions{ }
@@ -164,7 +168,6 @@ void JChip8::emulate_cycle()
 
 void JChip8::execute_instruction(instruction& instr)
 {
-    bool carry;
     switch (instr.opcode >> 12)
     {
         case 0x00:
@@ -211,24 +214,28 @@ void JChip8::execute_instruction(instruction& instr)
         case 0x08:
             switch (instr.N)            
             {
+                bool carry;
                 case 0x00:
                     V[instr.X] = V[instr.Y];
                     break;
 
                 case 0x01:
                     V[instr.X] |= V[instr.Y];
+                    V[0xF] = 0;
                     break;
 
                 case 0x02:
                     V[instr.X] &= V[instr.Y];
+                    V[0xF] = 0;
                     break;
 
                 case 0x03:
                     V[instr.X] ^= V[instr.Y];
+                    V[0xF] = 0;
                     break;
 
                 case 0x04:
-                    carry = ((uint16_t)(V[instr.X] + V[instr.Y]) > 255);
+                    carry = ((uint16)(V[instr.X] + V[instr.Y]) > 255);
                     V[instr.X] += V[instr.Y];
                     V[0xF] = carry; 
                     break;
@@ -248,7 +255,6 @@ void JChip8::execute_instruction(instruction& instr)
 
                 case 0x07:
                     carry = (V[instr.X] <= V[instr.Y]);
-
                     V[instr.X] = V[instr.Y] - V[instr.X];
                     V[0xF] = carry;
                     break;
@@ -292,43 +298,53 @@ void JChip8::execute_instruction(instruction& instr)
             V[0xF] = 0;
             _draw_flag = true;
             uint8 height = instr.N;
+            uint8 start_x = V[instr.X];
+            uint8 start_y = V[instr.Y];
 
             for (uint8 i = 0; i < height; ++i)
             {
                 uint8 sprite = memory[I + i];
-                uint8 row = (V[instr.Y] + i);
+                uint8 row = start_y + i;
+
                 if (row >= GRAPHICS_HEIGHT)
-                    break;
+                {   
+                    // Handle the case where the sprite begins drawing offscreen on the y-axis, by wrapping
+                    if (start_y >= GRAPHICS_HEIGHT) row %= GRAPHICS_HEIGHT;
+                    // Handle the case where the sprite begins drawing onscreen on the y-axis but moves offscreen, by clipping
+                    else break;
+                }
 
                 for (int8 j = 0; j < 8; ++j)
                 {
                     uint8 bit = (sprite & 0x80) >> 7;
-                    uint8 col = (V[instr.X] + j) % GRAPHICS_WIDTH;
+                    uint8 col = start_x + j;
+
                     if (col >= GRAPHICS_WIDTH)
-                        break;
+                    {
+                        // Handle the case where the sprite begins drawing offscreen on the y-axis, by wrapping
+                        if (start_x >= GRAPHICS_WIDTH) col %= GRAPHICS_WIDTH;
+                        // Handle the case where the sprite begins drawing onscreen on the y-axis but moves offscreen, by clipping
+                        else break;
+                    }
 
                     uint16 offset = row * GRAPHICS_WIDTH + col;
 
                     if (bit == 1)
                     {
-                        if (offset < sizeof(graphics))
+                        if (graphics[offset] == static_cast<uint8>(pixel_state::on))
                         {
-                            if (graphics[offset] == static_cast<uint8>(pixel_state::on))
-                            {
-                                graphics[offset] = 0;
-                                V[0xF] = 1;
-                            }
-                            else
-                            {
-                                graphics[offset] = 1;
-                            }
+                            graphics[offset] = 0;
+                            V[0xF] = 1;
+                        }
+                        else
+                        {
+                            graphics[offset] = 1;
                         }
                     }
 
                     sprite <<= 1;
                 }
             }
-
             break;
         }
 
@@ -350,25 +366,48 @@ void JChip8::execute_instruction(instruction& instr)
         case 0x0F:
             switch (instr.NN)
             {
-                case 0x07:
-                    V[instr.X] = delay_timer;
-                    break;
-
                 case 0x0A:
                 {
-                    bool key_pressed = false;
-                    for (uint8 i = 0; i < sizeof(keypad); ++i)
+                    static bool key_pressed = false;
+                    static uint8 key = 0xFF;
+
+                    // Loop over keypad array, checking for any key that is held down to break the loop
+                    for (uint8 i = 0; key == 0x0FF && i < sizeof(keypad); ++i)
                     {
                         if (keypad[i])
                         {
-                            V[instr.X] = i;
+                            key = i;
                             key_pressed = true;
                             break;
                         }
                     }
-                    if (!key_pressed) pc -= 2;
+
+                    // If no key was pressed, we run the same instruction again since it's a blocking instruction
+                    if (!key_pressed)
+                    {
+                        pc -= 2;
+                    }
+                    else
+                    {
+                        // Key input should happen on KeyUp, so check if it's still held down,
+                        // and if it is, run the same instruction again
+                        if (keypad[key])
+                            pc -= 2;
+                        else
+                        {
+                            // Set register Vx = key, reset the key and key_pressed flag
+                            V[instr.X] = key;
+                            key = 0xFF;
+                            key_pressed = false;
+                        }
+                    }
+
                     break;
                 }
+
+                case 0x07:
+                    V[instr.X] = delay_timer;
+                    break;
 
                 case 0x15:
                     delay_timer = V[instr.X];
@@ -383,6 +422,7 @@ void JChip8::execute_instruction(instruction& instr)
                     break;
 
                 case 0x29:
+                    I = V[instr.X] * 0x5;
                     break;
 
                 case 0x33:
@@ -396,20 +436,18 @@ void JChip8::execute_instruction(instruction& instr)
 
                 case 0x55:
                 {
-                    uint8 len = instr.X;
-                    for (uint8 i = 0; i <= len; ++i)
+                    for (uint8 i = 0; i <= instr.X; ++i)
                     {
-                        memory[I + i] = V[i];
+                        memory[I++] = V[i];
                     }
                     break;
                 }
 
                 case 0x65:
                 {
-                    uint8 len = instr.X;
-                    for (uint8 i = 0; i <= len; ++i)
+                    for (uint8 i = 0; i <= instr.X; ++i) 
                     {
-                        V[i] = memory[I + i];
+                        V[i] = memory[I++];
                     }
                     break;
                 }
@@ -497,9 +535,10 @@ void JChip8::load_fontset()
         0xF0, 0x80, 0xF0, 0x80, 0x80  // F
     };
 
+    // Load the font into the beginning of memory
     for (int i = 0; i < 80; ++i)
     {
-        memory[0x050 + i] = fontset[i];
+        memory[0x0 + i] = fontset[i];
     }
 }
 
@@ -581,3 +620,4 @@ void JChip8::load_test_suite_roms()
     }
 }
 
+#pragma warning(pop)

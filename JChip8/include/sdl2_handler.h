@@ -6,13 +6,14 @@
 struct SDL_Window;
 struct SDL_Renderer;
 struct ROM;
+struct emulator_config;
 
 class JChip8;
 
 class sdl2_handler
 {
 public:
-    sdl2_handler();
+    sdl2_handler(const emulator_config& config);
     ~sdl2_handler();
     sdl2_handler(const sdl2_handler&) = delete;
     sdl2_handler& operator=(const sdl2_handler&) = delete;
@@ -28,6 +29,9 @@ public:
 private:
     SDL_Window* _window;
     SDL_Renderer* _renderer;
+    const emulator_config& _config;
+
+    void extract_rgba(uint32 color, uint8& r, uint8& g, uint8& b, uint8& a);
 };
 
 #endif

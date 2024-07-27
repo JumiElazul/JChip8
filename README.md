@@ -42,17 +42,17 @@ Test suite roms are from Timendus (thank you!), and should be placed in the "JCh
 | ✅ | `0x9XY0` | Skip the next instruction if `VX` doesn't equal `VY`. |
 | ✅ | `0xANNN` | Set index register to 0xNNN |
 | ✅ | `0xBNNN` | Jump to the address `NNN` plus `V0` |
-| ❌?| `0xCXNN` | Set `VX` to the result of a bitwise and operation on a random number and `NN` |
+| ✅ | `0xCXNN` | Set `VX` to the result of a bitwise and operation on a random number and `NN` |
 | ✅ | `0xDXYN` | Draw a sprite at coordinate (`VX`, `VY`) that has a width of 8 pixels and a height of `N` pixels. Each row is read as bit-coded starting from the index register, I. I doesn't change after the execution of this instruction. `VF` is set to 1 if any screen pixels are flipped from set to unset when the sprite is drawn, and to 0 if that doesn't happen. |
-| ❌?| `0xEX9E` | Skip the next instruction if the key stored in `VX` is pressed. |
-| ❌?| `0xEXA1` | Skip the next instruction if the key stored in `VX` is not pressed. |
+| ✅ | `0xEX9E` | Skip the next instruction if the key stored in `VX` is pressed. |
+| ✅ | `0xEXA1` | Skip the next instruction if the key stored in `VX` is not pressed. |
 | ✅ | `0xFX07` | Set `VX` to the value of the delay timer. |
-| ❌?| `0xFX0A` | A key press is awaited and then stored in `VX` (blocking operation - all instructions are halted until the next key event) |
+| ✅ | `0xFX0A` | A key press is awaited and then stored in `VX` (blocking operation - all instructions are halted until the next key event) |
 | ✅ | `0xFX15` | Set the delay timer to the value of `VX` |
 | ✅ | `0xFX18` | Set the sound timer to the value of `VX` |
 | ✅ | `0xFX1E` | Add the value of `VX` to the index register |
-| ❌ | `0xFX29` | Set `I` to the location of the sprite for the character in `VX`. Characters 0-F (in hex) are represented by a 4x5 font. |
-| ❌ | `0xFX33` | Stores the binary-coded decimal representation of `VX`, with the most significant of three digits at the address in `I`, the middle digit at `I` plus 1, and the least significant digit at `I` plus 2. (In other words, take the decimal representation of VX, place the hundreds digit in memory at location in `I`, the tens digit at location `I+1`, and the ones digit at location `I+2`.) |
+| ✅ | `0xFX29` | Set `I` to the location of the sprite for the character in `VX`. Characters 0-F (in hex) are represented by a 4x5 font. |
+| ✅ | `0xFX33` | Stores the binary-coded decimal representation of `VX`, with the most significant of three digits at the address in `I`, the middle digit at `I` plus 1, and the least significant digit at `I` plus 2. (In other words, take the decimal representation of VX, place the hundreds digit in memory at location in `I`, the tens digit at location `I+1`, and the ones digit at location `I+2`.) |
 | ✅ | `0xFX55` | Stores `V0` to `VX` (including `VX`) in memory starting at address `I`. `I` is increased by 1 for each value written. |
 | ✅ | `0xFX65` | Fills `V0` to `VX` (including `VX`) with values from memory starting at address `I`. `I` is increased by 1 for each value written. |
 

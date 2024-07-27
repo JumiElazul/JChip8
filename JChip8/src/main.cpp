@@ -1,3 +1,4 @@
+#include "emulator_config.h"
 #include "jchip8.h"
 #include "sdl2_handler.h"
 #include "typedefs.h"
@@ -5,8 +6,9 @@
 
 int main(int argc, char* argv[])
 {
-    sdl2_handler sdl_handler;
-    JChip8 chip8{ 500 };
+    emulator_config config;
+    sdl2_handler sdl_handler{ config };
+    JChip8 chip8{ 700 };
     int16 frame_wait_time = 1000 / chip8.ips;
 
     chip8.load_next_test_rom();
