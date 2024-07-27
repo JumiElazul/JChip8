@@ -164,6 +164,7 @@ void JChip8::emulate_cycle()
 
 void JChip8::execute_instruction(instruction& instr)
 {
+    bool carry;
     switch (instr.opcode >> 12)
     {
         case 0x00:
@@ -227,37 +228,36 @@ void JChip8::execute_instruction(instruction& instr)
                     break;
 
                 case 0x04:
-                {
-                    uint16 sum = V[instr.X] + V[instr.Y];
-                    if (sum > 0xFF) V[0xF] = 1;
-                    else            V[0xF] = 0;
-
-                    V[instr.X] = sum & 0xFF;
+                    carry = ((uint16_t)(V[instr.X] + V[instr.Y]) > 255);
+                    V[instr.X] += V[instr.Y];
+                    V[0xF] = carry; 
                     break;
-                }
 
-                case 0x05:
-                {
-                    V[instr.X] > V[instr.Y] ? V[0xF] = 1 : V[0xF] = 0;
+                case 0x05: 
+                    carry = (V[instr.Y] <= V[instr.X]);
+
                     V[instr.X] -= V[instr.Y];
+                    V[0xF] = carry;
                     break;
-                }
 
                 case 0x06:
-                    V[0xF] = V[instr.Y] & 0x01;
-                    V[instr.X] >>= 1;
+                    carry = V[instr.Y] & 0x1;
+                    V[instr.X] = V[instr.Y] >> 1;
+                    V[0xF] = carry;
                     break;
 
                 case 0x07:
-                    V[instr.Y] > V[instr.X] ? V[0xF] = 1 : V[0xF] = 0;
+                    carry = (V[instr.X] <= V[instr.Y]);
+
                     V[instr.X] = V[instr.Y] - V[instr.X];
+                    V[0xF] = carry;
                     break;
 
-                case 0x0E:
-                    V[0xF] = (V[instr.X] & 0x80) >> 7;
-                    V[instr.X] = V[instr.X] << 1;
-                    break;
-            }
+                case 0xE:
+                    carry = (V[instr.Y] & 0x80) >> 7;
+                    V[instr.X] = V[instr.Y] << 1;
+                    V[0xF] = carry;
+                    break;            }
             break;
 
         case 0x09:
