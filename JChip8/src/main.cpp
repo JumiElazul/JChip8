@@ -6,7 +6,7 @@
 int main(int argc, char* argv[])
 {
     sdl2_handler sdl_handler;
-    JChip8 chip8{ 100 };
+    JChip8 chip8{ 500 };
     int16 frame_wait_time = 1000 / chip8.ips;
 
     chip8.load_next_test_rom();

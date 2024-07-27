@@ -1,4 +1,5 @@
 ﻿#include "jchip8.h"
+#include <chrono>
 #include <filesystem>
 #include <fstream>
 #include <iomanip>
@@ -6,12 +7,50 @@
 #include <limits>
 #include <random>
 #include <utility>
+#include <string>
 #include <vector>
 
 instruction_history::instruction_history() 
     : _instructions{ }
     , _ip{ MAX_INSTRUCTION_HISTORY - 1 }
+    , _instruction_descriptions{
+        {0x00E0, "Clear the display"},
+        {0x00EE, "Return from a subroutine"},
+        {0x1000, "Jump to address NNN"},
+        {0x2000, "Call subroutine at NNN"},
+        {0x3000, "Skip next instruction if Vx equals NN"},
+        {0x4000, "Skip next instruction if Vx not equal to NN"},
+        {0x5000, "Skip next instruction if Vx equals Vy"},
+        {0x6000, "Set Vx to NN"},
+        {0x7000, "Add NN to Vx"},
+        {0x8000, "Set Vx to the value of Vy"},
+        {0x8001, "Set Vx to Vx OR Vy"},
+        {0x8002, "Set Vx to Vx AND Vy"},
+        {0x8003, "Set Vx to Vx XOR Vy"},
+        {0x8004, "Add Vy to Vx, set VF to 1 if there's a carry, 0 if not"},
+        {0x8005, "Subtract Vy from Vx, set VF to 0 if there's a borrow, 1 if not"},
+        {0x8006, "Store the least significant bit of Vx in VF, then shift Vx to the right by 1"},
+        {0x8007, "Set Vx to Vy minus Vx, set VF to 0 if there's a borrow, 1 if not"},
+        {0x800E, "Store the most significant bit of Vx in VF, then shift Vx to the left by 1"},
+        {0x9000, "Skip next instruction if Vx not equal to Vy"},
+        {0xA000, "Set I to the address NNN"},
+        {0xB000, "Jump to the address NNN plus V0"},
+        {0xC000, "Set Vx to the result of a bitwise AND operation on a random number and NN"},
+        {0xD000, "Draw a sprite at coordinate (Vx, Vy) with a width of 8 pixels and a height of N pixels"},
+        {0xE09E, "Skip the next instruction if the key stored in Vx is pressed"},
+        {0xE0A1, "Skip the next instruction if the key stored in Vx is not pressed"},
+        {0xF007, "Set Vx to the value of the delay timer"},
+        {0xF00A, "Wait for a key press, store the value of the key in Vx"},
+        {0xF015, "Set the delay timer to Vx"},
+        {0xF018, "Set the sound timer to Vx"},
+        {0xF01E, "Add Vx to I"},
+        {0xF029, "Set I to the location of the sprite for the character in Vx"},
+        {0xF033, "Store the binary-coded decimal representation of Vx at the addresses I, I+1, and I+2"},
+        {0xF055, "Store registers V0 through Vx in memory starting at location I"},
+        {0xF065, "Read registers V0 through Vx from memory starting at location I"}
+    }
 {
+
 }
 
 void instruction_history::add_instruction(uint16 memory_address, instruction& instr)
@@ -26,8 +65,7 @@ void instruction_history::log_last_instruction() const noexcept
     std::ios_base::fmtflags flags = std::cout.flags();
     std::cout << "Address: [0x" << std::uppercase << std::hex << std::setw(4) << std::setfill('0') << last_instruction.first
               << "]   Instruction: [0x" << std::setw(4) << std::setfill('0') << last_instruction.second.opcode
-              << "]   Description: [";
-
+              << "]   Description: [" << get_instruction_description(last_instruction.second.opcode) << "]\n";
     std::cout.flags(flags);
 }
 
@@ -44,6 +82,23 @@ uint32 instruction_history::get_size() const noexcept { return MAX_INSTRUCTION_H
 void instruction_history::clear()
 {
     std::fill(_instructions.begin(), _instructions.end(), std::make_pair<uint16, instruction>(0x00, instruction()));
+}
+
+const std::string& instruction_history::get_instruction_description(uint16 opcode) const noexcept
+{
+    uint16_t masked_opcode = opcode & 0xF000;
+    if (_instruction_descriptions.find(masked_opcode) != _instruction_descriptions.end())
+        return _instruction_descriptions.at(masked_opcode);
+
+    masked_opcode = opcode & 0xF00F;
+    if (_instruction_descriptions.find(masked_opcode) != _instruction_descriptions.end())
+        return _instruction_descriptions.at(masked_opcode);
+
+    masked_opcode = opcode & 0xF0FF;
+    if (_instruction_descriptions.find(masked_opcode) != _instruction_descriptions.end()) 
+        return _instruction_descriptions.at(masked_opcode);
+
+    return "Unknown opcode";
 }
 
 JChip8::JChip8(uint16 ips_)
@@ -97,22 +152,14 @@ void JChip8::emulate_cycle()
     _instruction_history->add_instruction(pc, instr);
     pc += 2;
 
+#ifdef DEBUG_INSTRUCTIONS
     _instruction_history->log_last_instruction();
+#endif
 
     execute_instruction(instr);
 
     // Update timers
-    if (delay_timer > 0)
-        --delay_timer;
-
-    if (sound_timer > 0)
-    {
-        if (sound_timer == 1)
-        {
-            std::cout << "BEEP!\n";
-        }
-        --sound_timer;
-    }
+    update_timers();
 }
 
 void JChip8::execute_instruction(instruction& instr)
@@ -122,50 +169,41 @@ void JChip8::execute_instruction(instruction& instr)
         case 0x00:
             if (instr.NN == 0xE0)
             {
-                std::cout << "Clear screen";
                 clear_graphics_buffer();
             }
             else if (instr.NN == 0xEE)
             {
-                std::cout << "Return from subroutine";
                 pc = stack[--sp];
             }
             break;
 
         case 0x01:
-            std::cout << "Jump to address NNN";
             pc = instr.NNN;
             break;
 
         case 0x02:
-            std::cout << "Call subroutine at NNN";
             stack[sp++] = pc;
             pc = instr.NNN;
             break;
 
         case 0x03:
-            std::cout << "If Vx == NN, skip the next instruction";
             if (V[instr.X] == instr.NN) pc += 2;
             break;
 
         case 0x04:
-            std::cout << "If Vx != NN, skip the next instruction";
             if (V[instr.X] != instr.NN) pc += 2;
             break;
 
         case 0x05:
-            std::cout << "5XY0 if (Vx == Vy) skip the next instruction";
             if (V[instr.X] == V[instr.Y])
                 pc += 2;
             break;
 
         case 0x06:
-            std::cout << "6XNN	Sets VX to NN.";
             V[instr.X] = instr.NN;
             break;
 
         case 0x07:
-            std::cout << "7XNN	Vx += NN Adds NN to VX (carry flag is not changed)";
             V[instr.X] += instr.NN;
             break;
 
@@ -173,28 +211,23 @@ void JChip8::execute_instruction(instruction& instr)
             switch (instr.N)            
             {
                 case 0x00:
-                    std::cout << "8XY0 Vx = Vy Sets VX to the value of VY.";
                     V[instr.X] = V[instr.Y];
                     break;
 
                 case 0x01:
-                    std::cout << "8XY1 Vx |= Vy sets VX to VX or VY. (bitwise OR operation).";
                     V[instr.X] |= V[instr.Y];
                     break;
 
                 case 0x02:
-                    std::cout << "8XY2 Vx &= Vy sets VX to VX and VY. (bitwise AND operation).";
                     V[instr.X] &= V[instr.Y];
                     break;
 
                 case 0x03:
-                    std::cout << "8XY3[a] Vx ^= Vy sets VX to VX xor VY.";
                     V[instr.X] ^= V[instr.Y];
                     break;
 
                 case 0x04:
                 {
-                    std::cout << "8XY4 Vx += Vy Adds VY to VX. VF is set to 1 when there's an overflow, and to 0 when there is not.";
                     uint16 sum = V[instr.X] + V[instr.Y];
                     if (sum > 0xFF)
                         V[0xF] = 1;
@@ -207,7 +240,6 @@ void JChip8::execute_instruction(instruction& instr)
 
                 case 0x05:
                 {
-                    std::cout << "Subtract VY from VX.  VF is set to 0 when there's a borrow and 1 when there isn't.";
                     uint8 x = instr.X;
                     uint8 y = instr.Y;
                     x > y ? V[0xF] = 1 : V[0xF] = 0;
@@ -216,13 +248,11 @@ void JChip8::execute_instruction(instruction& instr)
                 }
 
                 case 0x06:
-                    std::cout << "Shift `VY` right by one and copy the result to `VX`. `VF` is set to the value of the least significant bit of `VY` before the shift.";
                     V[0xF] = V[instr.Y] & 0x01;
                     V[instr.X] = V[instr.Y] >> 1;
                     break;
 
                 case 0x07:
-                    std::cout << "Set `VX` to `VY - VX`. `VF` is set to 0 when there's a borrow and 1 when there isn't.";
                     if (V[instr.Y] >= V[instr.X]) 
                         V[0xF] = 1;
                     else
@@ -232,35 +262,26 @@ void JChip8::execute_instruction(instruction& instr)
                     break;
 
                 case 0x0E:
-                    std::cout << "Shift `VY` left by one and copy the result to `VX`. `VF` is set to the value of the least significant bit of `VY` before the shift.";
                     V[0xF] = V[instr.Y] & 0x01;
                     V[instr.X] = V[instr.Y] << 1;
-                    break;
-
-                default:
-                    std::cout << "Unimplemented 0x8 instruction";
                     break;
             }
             break;
 
         case 0x09:
-            std::cout << "9XY0 if (Vx != Vy) skips the next instruction";
             if (V[instr.X] != V[instr.Y]) pc += 2;
             break;
 
         case 0x0A:
-            std::cout << "ANNN Sets I to NNN.";
             I = instr.NNN;
             break;
 
         case 0x0B:
-            std::cout << "BNNN PC = V0 + NNN Jumps to the address NNN plus V0.";
             pc = instr.NNN + V[0];
             break;
 
         case 0x0C:
         {
-            std::cout << "CXNN Vx = rand() & NN Sets VX to the result of a bitwise and operation on a random number (Typically: 0 to 255) and NN.";
             uint8 rnd_num = generate_random_number();
             V[instr.X] = rnd_num & instr.NN;
             break;
@@ -276,7 +297,6 @@ void JChip8::execute_instruction(instruction& instr)
             // Each row of 8 pixels is read as bit-coded starting from memory location I; I value does not
             // change after the execution of this instruction. As described above, VF is set to 1 if any screen
             // pixels are flipped from set to unset when the sprite is drawn, and to 0 if that does not happen.
-            std::cout << "Draws a sprite at coordinate (VX, VY) that has a width of 8 pixels and a height of N pixels.";
             V[0xF] = 0;
             _draw_flag = true;
             uint8 height = instr.N;
@@ -284,24 +304,32 @@ void JChip8::execute_instruction(instruction& instr)
             for (uint8 i = 0; i < height; ++i)
             {
                 uint8 sprite = memory[I + i];
-                uint8 row = (V[instr.Y] + i) % GRAPHICS_HEIGHT;
+                uint8 row = (V[instr.Y] + i);
+                if (row >= GRAPHICS_HEIGHT)
+                    break;
 
                 for (int8 j = 0; j < 8; ++j)
                 {
                     uint8 bit = (sprite & 0x80) >> 7;
                     uint8 col = (V[instr.X] + j) % GRAPHICS_WIDTH;
+                    if (col >= GRAPHICS_WIDTH)
+                        break;
+
                     uint16 offset = row * GRAPHICS_WIDTH + col;
 
                     if (bit == 1)
                     {
-                        if (graphics[offset] == static_cast<uint8>(pixel_state::on))
+                        if (offset < sizeof(graphics))
                         {
-                            graphics[offset] = 0;
-                            V[0xF] = 1;
-                        }
-                        else
-                        {
-                            graphics[offset] = 1;
+                            if (graphics[offset] == static_cast<uint8>(pixel_state::on))
+                            {
+                                graphics[offset] = 0;
+                                V[0xF] = 1;
+                            }
+                            else
+                            {
+                                graphics[offset] = 1;
+                            }
                         }
                     }
 
@@ -315,14 +343,12 @@ void JChip8::execute_instruction(instruction& instr)
         case 0x0E:
             if (instr.NN == 0x9E)
             {
-                std::cout << "Skip the next instruction if the key stored in `VX` is pressed";
                 uint8 key = V[instr.X];
                 if (keypad[key])
                     pc += 2;
             }
             else if (instr.NN == 0xA1)
             {
-                std::cout << "Skip the next instruction if the key stored in `VX` is not pressed.";
                 uint8 key = V[instr.X];
                 if (!keypad[key])
                     pc += 2;
@@ -333,13 +359,11 @@ void JChip8::execute_instruction(instruction& instr)
             switch (instr.NN)
             {
                 case 0x07:
-                    std::cout << "Setting Vx to value of delay timer";
                     V[instr.X] = delay_timer;
                     break;
 
                 case 0x0A:
                 {
-                    std::cout << "Awaiting key press, then storing in Vx (blocking, will not continue until keypress occurs)";
                     bool key_pressed = false;
                     for (uint8 i = 0; i < sizeof(keypad); ++i)
                     {
@@ -355,31 +379,25 @@ void JChip8::execute_instruction(instruction& instr)
                 }
 
                 case 0x15:
-                    std::cout << "Sets the delay timer to Vx";
                     delay_timer = V[instr.X];
                     break;
 
                 case 0x18:
-                    std::cout << "Sets the sound timer to Vx";
                     sound_timer = V[instr.X];
                     break;
 
                 case 0x1E:
-                    std::cout << "Adds Vx to I.  Vf (carry flag) unaffected";
                     I += V[instr.X];
                     break;
 
                 case 0x29:
-                    std::cout << "Sets I to the location of the sprite for the character in Vx";
                     break;
 
                 case 0x33:
-                    std::cout << "Stores the binary-coded decimal representation of VX, with the hundreds digit in memory at location in I, the tens digit at location I+1, and the ones digit at location I+2.";
                     break;
 
                 case 0x55:
                 {
-                    std::cout << "Stores from V0 to VX (inclusive) into memory, starting at address I using offsets;  I is unchanged";
                     uint8 len = instr.X;
                     for (uint8 i = 0; i <= len; ++i)
                     {
@@ -390,7 +408,6 @@ void JChip8::execute_instruction(instruction& instr)
 
                 case 0x65:
                 {
-                    std::cout << "Fills from V0 to VX (inclusive) from memory, starting at address I using offsets;  I is unchanged";
                     uint8 len = instr.X;
                     for (uint8 i = 0; i <= len; ++i)
                     {
@@ -398,10 +415,6 @@ void JChip8::execute_instruction(instruction& instr)
                     }
                     break;
                 }
-
-                default:
-                    std::cout << "Unimplemented 0x0F instruction";
-                    break;
             }
             break;
 
@@ -413,7 +426,6 @@ void JChip8::execute_instruction(instruction& instr)
             std::cout << "Unimplemented instruction";
             break;
     }
-    std::cout << "]\n";
 }
 
 void JChip8::load_game(const ROM& rom)
@@ -490,6 +502,32 @@ void JChip8::load_fontset()
     for (int i = 0; i < 80; ++i)
     {
         memory[0x050 + i] = fontset[i];
+    }
+}
+
+void JChip8::update_timers()
+{
+    static std::chrono::high_resolution_clock::time_point last_time = std::chrono::high_resolution_clock::now();
+
+    std::chrono::high_resolution_clock::time_point current_time = std::chrono::high_resolution_clock::now();
+    uint64 elapsed_time = static_cast<uint64>(std::chrono::duration_cast<std::chrono::milliseconds>(current_time - last_time).count());
+
+    // The timer loop happens at 60hz
+    if (elapsed_time >= 1000 / 60)
+    {
+        if (delay_timer > 0)
+            --delay_timer;
+
+        if (sound_timer > 0)
+        {
+            if (sound_timer == 1)
+            {
+                std::cout << "BEEP!\n";
+            }
+            --sound_timer;
+        }
+
+        last_time = current_time;
     }
 }
 

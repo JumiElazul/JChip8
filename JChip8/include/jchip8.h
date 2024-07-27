@@ -6,6 +6,7 @@
 #include <utility>
 #include <random>
 #include <vector>
+#include <unordered_map>
 #include "typedefs.h"
 
 //0x000-0x1FF - Chip 8 interpreter (contains font set in emu)
@@ -21,6 +22,8 @@
 //An 8-bit sound timer which functions like the delay timer, but which also gives off a beeping sound as long as it’s not 0
 //16 8-bit (one byte) general-purpose variable registers numbered 0 through F hexadecimal, ie. 0 through 15 in decimal, called V0 through VF
 //VF is also used as a flag register; many instructions will set it to either 1 or 0 based on some rule, for example using it as a carry flag
+
+#define DEBUG_INSTRUCTIONS
 
 static constexpr uint16 MEMORY_SIZE = 4096;
 static constexpr uint16 GRAPHICS_WIDTH = 64;
@@ -70,6 +73,9 @@ public:
 private:
     std::array<std::pair<uint16, instruction>, MAX_INSTRUCTION_HISTORY> _instructions;
     uint32 _ip;
+    std::unordered_map<uint16, std::string> _instruction_descriptions;
+
+    const std::string& get_instruction_description(uint16 opcode) const noexcept;
 };
 
 class JChip8
@@ -108,6 +114,7 @@ private:
     std::mt19937 _rng;
     void init_state();
     void load_fontset();
+    void update_timers();
     void clear_graphics_buffer();
     uint8 generate_random_number();
     void load_test_suite_roms();
