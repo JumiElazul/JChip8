@@ -55,6 +55,12 @@ target_link_libraries(${exe_name} PRIVATE SDL2::SDL2 SDL2::SDL2main)
 
 add_custom_command(TARGET ${exe_name} PRE_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_directory
-    ${CMAKE_CURRENT_SOURCE_DIR}/roms
-    ${CMAKE_CURRENT_BINARY_DIR}/roms
+    ${CMAKE_CURRENT_SOURCE_DIR}/test_suite_roms
+    ${CMAKE_CURRENT_BINARY_DIR}/test_suite_roms
 )
+
+#add_custom_command(TARGET ${exe_name} PRE_BUILD
+    #COMMAND ${CMAKE_COMMAND} -E copy_directory
+    #${CMAKE_CURRENT_SOURCE_DIR}/roms
+    #${CMAKE_CURRENT_BINARY_DIR}/roms
+#)

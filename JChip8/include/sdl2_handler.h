@@ -5,6 +5,7 @@
 
 struct SDL_Window;
 struct SDL_Renderer;
+struct ROM;
 
 class JChip8;
 
@@ -22,7 +23,7 @@ public:
     SDL_Window* window() const noexcept;
     SDL_Renderer* renderer() const noexcept;
     void draw_graphics(JChip8& chip8);
-    void handle_input(JChip8& chip8);
+    void handle_input(JChip8& chip8, int* rom_index);
 
 private:
     SDL_Window* _window;

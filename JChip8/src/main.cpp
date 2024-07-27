@@ -1,20 +1,28 @@
 #include "jchip8.h"
 #include "sdl2_handler.h"
 #include "typedefs.h"
+#include <array>
 #include <filesystem>
 #include <thread>
 #include <string>
 #include <fstream>
 #include <iostream>
-#include <unordered_map>
+#include <vector>
 
-const char* rom0 = "IBMLogo";
-const char* rom1 = "Blinky [Hans Christian Egeberg, 1991]";
-
-std::unordered_map<std::string, ROM> load_default_roms()
+std::vector<ROM> load_test_suite_roms()
 {
-    std::unordered_map<std::string, ROM> roms;
-    std::filesystem::path path = std::filesystem::current_path().append("roms");
+    std::vector<ROM> roms;
+    roms.reserve(8);
+    std::filesystem::path path = std::filesystem::current_path().append("test_suite_roms");
+
+    auto get_rom_size = [&](const std::string& filepath) {
+        std::ifstream rom_file(filepath, std::ios::binary);
+        if (!rom_file) throw std::runtime_error("Could not open file");
+
+        rom_file.seekg(0, std::ios::end);
+        uint16 size = static_cast<uint16>(rom_file.tellg());
+        return size;
+    };
 
     try
     {
@@ -25,17 +33,11 @@ std::unordered_map<std::string, ROM> load_default_roms()
                 ROM rom =
                 {
                     .filepath = entry.path().string(),
-                    .name = entry.path().filename().replace_extension("").string()
+                    .name = entry.path().filename().replace_extension("").string(),
+                    .size = get_rom_size(rom.filepath)
                 };
 
-                std::ifstream rom_file(entry.path().string(), std::ios::binary);
-                if (!rom_file) throw std::runtime_error("Could not open file");
-
-                rom_file.seekg(0, std::ios::end);
-                uint16 size = static_cast<uint16>(rom_file.tellg());
-                rom.size = size;
-
-                roms[rom.name] = rom;
+                roms.push_back(rom);
             }
         }
     }
@@ -54,21 +56,25 @@ std::unordered_map<std::string, ROM> load_default_roms()
 int main(int argc, char* argv[])
 {
     sdl2_handler sdl_handler;
-    JChip8 chip8{ 8 };
+    JChip8 chip8{ 100 };
     int16 frame_wait_time = 1000 / chip8.ips;
-    std::unordered_map<std::string, ROM> roms = load_default_roms();
+    std::vector<ROM> roms = load_test_suite_roms();
 
-    chip8.load_game(roms[rom0]);
+    int rom_index = 0;
+    chip8.load_game(roms[rom_index]);
 
     while (chip8.state != emulator_state::quit) 
     {
+        int current_rom_index = rom_index;
+
         int32_t frame_start_time = sdl_handler.time();
-
-
+        sdl_handler.handle_input(chip8, &rom_index);
         if (chip8.state == emulator_state::paused)
             continue;
 
-        sdl_handler.handle_input(chip8);
+        if (rom_index != current_rom_index)
+            chip8.load_game(roms[rom_index]);
+
         chip8.emulate_cycle();
 
         if (chip8.draw_flag())
@@ -76,7 +82,6 @@ int main(int argc, char* argv[])
             sdl_handler.draw_graphics(chip8);
             chip8.reset_draw_flag();
         }
-
 
         int32_t frame_end_time = sdl_handler.time();
         int32_t frame_duration = frame_end_time - frame_start_time;

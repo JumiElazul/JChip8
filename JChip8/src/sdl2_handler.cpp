@@ -69,7 +69,7 @@ void sdl2_handler::draw_graphics(JChip8& chip8)
     SDL_RenderPresent(_renderer);
 }
 
-void sdl2_handler::handle_input(JChip8& chip8)
+void sdl2_handler::handle_input(JChip8& chip8, int* rom_index)
 {
     SDL_Event event;
     while (SDL_PollEvent(&event))
@@ -91,17 +91,34 @@ void sdl2_handler::handle_input(JChip8& chip8)
                     case SDLK_4: chip8.keypad[0xC] = true; break;
                     case SDLK_q: chip8.keypad[0x4] = true; break;
                     case SDLK_w: chip8.keypad[0x5] = true; break;
-                    case SDLK_e: chip8.keypad[0x6] = true; break;
-                    case SDLK_r: chip8.keypad[0xD] = true; break;
+                    case SDLK_f: chip8.keypad[0x6] = true; break;
+                    case SDLK_p: chip8.keypad[0xD] = true; break;
                     case SDLK_a: chip8.keypad[0x7] = true; break;
-                    case SDLK_s: chip8.keypad[0x8] = true; break;
-                    case SDLK_d: chip8.keypad[0x9] = true; break;
-                    case SDLK_f: chip8.keypad[0xE] = true; break;
+                    case SDLK_r: chip8.keypad[0x8] = true; break;
+                    case SDLK_s: chip8.keypad[0x9] = true; break;
+                    case SDLK_t: chip8.keypad[0xE] = true; break;
                     case SDLK_z: chip8.keypad[0xA] = true; break;
                     case SDLK_x: chip8.keypad[0x0] = true; break;
                     case SDLK_c: chip8.keypad[0xB] = true; break;
-                    case SDLK_v: chip8.keypad[0xF] = true; break;
-                    case SDLK_p: chip8.state = emulator_state::paused; break;
+                    case SDLK_d: chip8.keypad[0xF] = true; break;
+                    case SDLK_ESCAPE: chip8.state = emulator_state::quit; break;
+                    case SDLK_F1:
+                    {
+                        chip8.state == emulator_state::running ? chip8.state = emulator_state::paused : chip8.state = emulator_state::running;
+                        break;
+                    }
+                    case SDLK_F6:
+                    {
+                        *rom_index -= 1;
+                        if (*rom_index < 0) *rom_index = 7;
+                        break;
+                    }
+                    case SDLK_F7:
+                    {
+                        *rom_index += 1;
+                        if (*rom_index > 7) *rom_index = 0;
+                        break;
+                    }
                 }
                 break;
             }
@@ -115,16 +132,16 @@ void sdl2_handler::handle_input(JChip8& chip8)
                     case SDLK_4: chip8.keypad[0xC] = false; break;
                     case SDLK_q: chip8.keypad[0x4] = false; break;
                     case SDLK_w: chip8.keypad[0x5] = false; break;
-                    case SDLK_e: chip8.keypad[0x6] = false; break;
-                    case SDLK_r: chip8.keypad[0xD] = false; break;
+                    case SDLK_f: chip8.keypad[0x6] = false; break;
+                    case SDLK_p: chip8.keypad[0xD] = false; break;
                     case SDLK_a: chip8.keypad[0x7] = false; break;
-                    case SDLK_s: chip8.keypad[0x8] = false; break;
-                    case SDLK_d: chip8.keypad[0x9] = false; break;
-                    case SDLK_f: chip8.keypad[0xE] = false; break;
+                    case SDLK_r: chip8.keypad[0x8] = false; break;
+                    case SDLK_s: chip8.keypad[0x9] = false; break;
+                    case SDLK_t: chip8.keypad[0xE] = false; break;
                     case SDLK_z: chip8.keypad[0xA] = false; break;
                     case SDLK_x: chip8.keypad[0x0] = false; break;
                     case SDLK_c: chip8.keypad[0xB] = false; break;
-                    case SDLK_v: chip8.keypad[0xF] = false; break;
+                    case SDLK_d: chip8.keypad[0xF] = false; break;
                 }
                 break;
             }

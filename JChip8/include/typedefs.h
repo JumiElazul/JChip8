@@ -1,5 +1,7 @@
 #ifndef JUMI_CHIP8_TYPEDEFS_H
 #define JUMI_CHIP8_TYPEDEFS_H
+#include <vector>
+#include <utility>
 
 using int8 = std::int8_t;
 using int16 = std::int16_t;

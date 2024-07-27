@@ -110,25 +110,6 @@ void JChip8::emulate_cycle()
     }
 }
 
-//0NNN Calls machine code routine (RCA 1802 for COSMAC VIP) at address NNN. Not necessary for most ROMs.[22]
-
-//EX9E	KeyOp	if (key() == Vx)	Skips the next instruction if the key stored in VX is pressed (usually the next instruction is a jump to skip a code block).[22]
-//EXA1	KeyOp	if (key() != Vx)	Skips the next instruction if the key stored in VX is not pressed (usually the next instruction is a jump to skip a code block).[22]
-//FX07	Timer	Vx = get_delay()	Sets VX to the value of the delay timer.[22]
-//FX0A	KeyOp	Vx = get_key()	A key press is awaited, and then stored in VX (blocking operation, all instruction halted until next key event).[22]
-//FX15	Timer	delay_timer(Vx)	Sets the delay timer to VX.[22]
-//FX18	Sound	sound_timer(Vx)	Sets the sound timer to VX.[22]
-//FX1E	MEM	I += Vx	Adds VX to I. VF is not affected.[c][22]
-//FX29	MEM	I = sprite_addr[Vx]	Sets I to the location of the sprite for the character in VX. Characters 0-F (in hexadecimal) are represented by a 4x5 font.[22]
-//FX33	BCD	
-//set_BCD(Vx)
-//*(I+0) = BCD(3);
-//*(I+1) = BCD(2);
-//*(I+2) = BCD(1);
-//Stores the binary-coded decimal representation of VX, with the hundreds digit in memory at location in I, the tens digit at location I+1, and the ones digit at location I+2.[22]
-//FX55	MEM	reg_dump(Vx, &I)	Stores from V0 to VX (including VX) in memory, starting at address I. The offset from I is increased by 1 for each value written, but I itself is left unmodified.[d][22]
-//FX65	MEM	reg_load(Vx, &I)	Fills from V0 to VX (including VX) with values from memory, starting at address I. The offset from I is increased by 1 for each value read, but I itself is left unmodified.[d][22]
-
 void JChip8::execute_instruction(instruction& instr)
 {
     switch (instr.opcode >> 12)
@@ -230,22 +211,31 @@ void JChip8::execute_instruction(instruction& instr)
                 }
 
                 case 0x06:
+                    std::cout << "Shift `VY` right by one and copy the result to `VX`. `VF` is set to the value of the least significant bit of `VY` before the shift.";
+                    V[0xF] = V[instr.Y] & 0x01;
+                    V[instr.X] = V[instr.Y] >> 1;
                     break;
 
                 case 0x07:
+                    std::cout << "Set `VX` to `VY - VX`. `VF` is set to 0 when there's a borrow and 1 when there isn't.";
+                    if (V[instr.Y] >= V[instr.X]) 
+                        V[0xF] = 1;
+                    else
+                        V[0xF] = 0;
+
+                    V[instr.X] = V[instr.Y] - V[instr.X];
                     break;
 
                 case 0x0E:
+                    std::cout << "Shift `VY` left by one and copy the result to `VX`. `VF` is set to the value of the least significant bit of `VY` before the shift.";
+                    V[0xF] = V[instr.Y] & 0x01;
+                    V[instr.X] = V[instr.Y] << 1;
                     break;
 
                 default:
+                    std::cout << "Unimplemented 0x8 instruction";
                     break;
             }
-            
-            //8XY5	Math	Vx -= Vy	VY is subtracted from VX. VF is set to 0 when there's an underflow, and 1 when there is not. (i.e. VF set to 1 if VX >= VY and 0 if not).[22]
-            //8XY6[a]	BitOp	Vx >>= 1	Shifts VX to the right by 1, then stores the least significant bit of VX prior to the shift into VF.[b][22]
-            //8XY7[a]	Math	Vx = Vy - Vx	Sets VX to VY minus VX. VF is set to 0 when there's an underflow, and 1 when there is not. (i.e. VF set to 1 if VY >= VX).[22]
-            //8XYE[a]	BitOp	Vx <<= 1	Shifts VX to the left by 1, then sets VF to 1 if the most significant bit of VX prior to that shift was set, or to 0 if it was unset.[b][22]
             break;
 
         case 0x09:
@@ -254,18 +244,22 @@ void JChip8::execute_instruction(instruction& instr)
             break;
 
         case 0x0A:
-            std::cout << "ANNN	Sets I to NNN.";
+            std::cout << "ANNN Sets I to NNN.";
             I = instr.NNN;
             break;
 
         case 0x0B:
-            std::cout << "BNNN	PC = V0 + NNN Jumps to the address NNN plus V0.";
+            std::cout << "BNNN PC = V0 + NNN Jumps to the address NNN plus V0.";
             pc = instr.NNN + V[0];
             break;
 
         case 0x0C:
-            std::cout << "CXNN	Vx = rand() & NN Sets VX to the result of a bitwise and operation on a random number (Typically: 0 to 255) and NN.";
+        {
+            std::cout << "CXNN Vx = rand() & NN Sets VX to the result of a bitwise and operation on a random number (Typically: 0 to 255) and NN.";
+            uint8 rnd_num = generate_random_number();
+            V[instr.X] = rnd_num & instr.NN;
             break;
+        }
 
         // --------------------------------------------------
         //                  Draw Instruction
@@ -295,7 +289,7 @@ void JChip8::execute_instruction(instruction& instr)
 
                     if (bit == 1)
                     {
-                        if (graphics[offset] != 0)
+                        if (graphics[offset] == static_cast<uint8>(pixel_state::on))
                         {
                             graphics[offset] = 0;
                             V[0xF] = 1;
@@ -316,11 +310,17 @@ void JChip8::execute_instruction(instruction& instr)
         case 0x0E:
             if (instr.NN == 0x9E)
             {
-
+                std::cout << "Skip the next instruction if the key stored in `VX` is pressed";
+                uint8 key = V[instr.X];
+                if (keypad[key])
+                    pc += 2;
             }
             else if (instr.NN == 0xA1)
             {
-
+                std::cout << "Skip the next instruction if the key stored in `VX` is not pressed.";
+                uint8 key = V[instr.X];
+                if (!keypad[key])
+                    pc += 2;
             }
             break;
 
@@ -333,8 +333,21 @@ void JChip8::execute_instruction(instruction& instr)
                     break;
 
                 case 0x0A:
+                {
                     std::cout << "Awaiting key press, then storing in Vx (blocking, will not continue until keypress occurs)";
+                    bool key_pressed = false;
+                    for (uint8 i = 0; i < sizeof(keypad); ++i)
+                    {
+                        if (keypad[i])
+                        {
+                            V[instr.X] = i;
+                            key_pressed = true;
+                            break;
+                        }
+                    }
+                    if (!key_pressed) pc -= 2;
                     break;
+                }
 
                 case 0x15:
                     std::cout << "Sets the delay timer to Vx";
@@ -400,6 +413,8 @@ void JChip8::execute_instruction(instruction& instr)
 
 void JChip8::load_game(const ROM& rom)
 {
+    init_state();
+
     std::ifstream file(rom.filepath, std::ios::binary);
     if (!file) throw std::runtime_error("Could not open file");
 
@@ -413,9 +428,26 @@ void JChip8::load_game(const ROM& rom)
 
 void JChip8::reset_draw_flag() { _draw_flag = false; }
 
+void JChip8::init_state()
+{
+    memset(memory, 0, sizeof(memory));
+    memset(V, 0, sizeof(V));
+    pc = 0x200;
+    memset(graphics, 0, sizeof(graphics));
+    memset(stack, 0, sizeof(stack));
+    sp = 0;
+    delay_timer = 0;
+    sound_timer = 0;
+    I = 0;
+    memset(keypad, 0, sizeof(keypad));
+    state = emulator_state::running;
+
+    _instruction_history->clear();
+}
+
 void JChip8::load_fontset()
 {
-    uint8 fontset[80] =
+    static uint8 fontset[80] =
     {
         0xF0, 0x90, 0x90, 0x90, 0xF0, // 0
         0x20, 0x60, 0x20, 0x20, 0x70, // 1

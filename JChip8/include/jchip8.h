@@ -35,6 +35,12 @@ struct instruction
     uint8 Y;        // 4-bit register identifier
 };
 
+enum class pixel_state
+{
+    off,
+    on,
+};
+
 enum class emulator_state
 {
     running,
@@ -77,7 +83,7 @@ public:
     uint8 delay_timer;
     uint8 sound_timer;
     uint16 I;
-    uint8 keypad[16];
+    bool keypad[16];
     emulator_state state;
     uint16 ips;
 
@@ -95,6 +101,7 @@ private:
     bool _draw_flag;
     instruction_history* _instruction_history;
     std::mt19937 _rng;
+    void init_state();
     void load_fontset();
     void clear_graphics_buffer();
     uint8 generate_random_number();
