@@ -1,10 +1,12 @@
 ﻿#include "jchip8.h"
+#include <filesystem>
 #include <fstream>
-#include <iostream>
 #include <iomanip>
-#include <utility>
-#include <random>
+#include <iostream>
 #include <limits>
+#include <random>
+#include <utility>
+#include <vector>
 
 instruction_history::instruction_history() 
     : _instructions{ }
@@ -57,10 +59,13 @@ JChip8::JChip8(uint16 ips_)
     , keypad{ 0 }
     , state{ emulator_state::running }
     , ips{ ips_ }
+    , _test_roms{}
+    , _current_rom{ -1 }
     , _draw_flag{ false }
     , _instruction_history{ new instruction_history() }
     , _rng(std::random_device()())
 {
+    load_test_suite_roms();
     load_fontset();
 }
 
@@ -428,6 +433,21 @@ void JChip8::load_game(const ROM& rom)
 
 void JChip8::reset_draw_flag() { _draw_flag = false; }
 
+void JChip8::load_next_test_rom()
+{
+    _current_rom += 1;
+    _current_rom %= _test_roms.size();
+    load_game(_test_roms[_current_rom]);
+}
+
+void JChip8::load_previous_test_rom()
+{
+    _current_rom -= 1;
+    if (_current_rom < 0)
+        _current_rom = _test_roms.size() - 1;
+    load_game(_test_roms[_current_rom]);
+}
+
 void JChip8::init_state()
 {
     memset(memory, 0, sizeof(memory));
@@ -483,5 +503,45 @@ uint8 JChip8::generate_random_number()
 {
     static std::uniform_int_distribution<int> uid(0, std::numeric_limits<uint8>::max());
     return uid(_rng);
+}
+
+void JChip8::load_test_suite_roms()
+{
+    std::filesystem::path path = std::filesystem::current_path().append("test_suite_roms");
+
+    auto get_rom_size = [&](const std::string& filepath) {
+        std::ifstream rom_file(filepath, std::ios::binary);
+        if (!rom_file) throw std::runtime_error("Could not open file");
+
+        rom_file.seekg(0, std::ios::end);
+        uint16 size = static_cast<uint16>(rom_file.tellg());
+        return size;
+    };
+
+    try
+    {
+        for (const auto& entry : std::filesystem::directory_iterator(path))
+        {
+            if (entry.is_regular_file() && entry.path().extension() == ".ch8")
+            {
+                ROM rom =
+                {
+                    .filepath = entry.path().string(),
+                    .name = entry.path().filename().replace_extension("").string(),
+                    .size = get_rom_size(rom.filepath)
+                };
+
+                _test_roms.push_back(rom);
+            }
+        }
+    }
+    catch (const std::filesystem::filesystem_error& e)
+    {
+        std::cerr << "Filesystem error: " << e.what() << '\n';
+    }
+    catch (const std::exception& e)
+    {
+        std::cerr << "Exception swallower: " << e.what() << '\n';
+    }
 }
 

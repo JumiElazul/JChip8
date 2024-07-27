@@ -2,6 +2,20 @@
 A Chip8 emulator written in C++.  I've always wondered how emulators work, and Chip8 seems like
 the best place to start!  Should be a good learning project.
 
+## Usage
+Currently the keypad is hard coded to the following keys:
+1 2 3 4
+Q W F P
+A R S T
+Z X C D
+
+I know, this is weird for now, but I run a non-qwerty keyboard layout.  Will definitely make this configurable in the future.
+F1 will pause the emulator.
+F6 will cycle back to the previous test suite rom.
+F7 will cycle forward to the next test suite rom.
+Test suite roms are from Timendus (thank you!), and should be placed in the "JChip8/JChip8/test_suite_roms" directory.  They can be found:
+* [Timendus Chip8 Test Suite](https://github.com/Timendus/chip8-test-suite)
+
 ## Opcodes:
 
 | Implemented | Opcode | Description |

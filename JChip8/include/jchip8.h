@@ -5,6 +5,7 @@
 #include <string>
 #include <utility>
 #include <random>
+#include <vector>
 #include "typedefs.h"
 
 //0x000-0x1FF - Chip 8 interpreter (contains font set in emu)
@@ -96,8 +97,12 @@ public:
     void execute_instruction(instruction& instr);
     void load_game(const ROM& rom);
     void reset_draw_flag();
+    void load_next_test_rom();
+    void load_previous_test_rom();
 
 private:
+    std::vector<ROM> _test_roms;
+    int16 _current_rom;
     bool _draw_flag;
     instruction_history* _instruction_history;
     std::mt19937 _rng;
@@ -105,6 +110,7 @@ private:
     void load_fontset();
     void clear_graphics_buffer();
     uint8 generate_random_number();
+    void load_test_suite_roms();
  };
 
 #endif

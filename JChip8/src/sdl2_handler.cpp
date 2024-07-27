@@ -69,7 +69,7 @@ void sdl2_handler::draw_graphics(JChip8& chip8)
     SDL_RenderPresent(_renderer);
 }
 
-void sdl2_handler::handle_input(JChip8& chip8, int* rom_index)
+void sdl2_handler::handle_input(JChip8& chip8)
 {
     SDL_Event event;
     while (SDL_PollEvent(&event))
@@ -109,14 +109,12 @@ void sdl2_handler::handle_input(JChip8& chip8, int* rom_index)
                     }
                     case SDLK_F6:
                     {
-                        *rom_index -= 1;
-                        if (*rom_index < 0) *rom_index = 7;
+                        chip8.load_previous_test_rom();
                         break;
                     }
                     case SDLK_F7:
                     {
-                        *rom_index += 1;
-                        if (*rom_index > 7) *rom_index = 0;
+                        chip8.load_next_test_rom();
                         break;
                     }
                 }
