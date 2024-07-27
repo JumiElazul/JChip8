@@ -229,10 +229,8 @@ void JChip8::execute_instruction(instruction& instr)
                 case 0x04:
                 {
                     uint16 sum = V[instr.X] + V[instr.Y];
-                    if (sum > 0xFF)
-                        V[0xF] = 1;
-                    else
-                        V[0xF] = 0;
+                    if (sum > 0xFF) V[0xF] = 1;
+                    else            V[0xF] = 0;
 
                     V[instr.X] = sum & 0xFF;
                     break;
@@ -240,30 +238,24 @@ void JChip8::execute_instruction(instruction& instr)
 
                 case 0x05:
                 {
-                    uint8 x = instr.X;
-                    uint8 y = instr.Y;
-                    x > y ? V[0xF] = 1 : V[0xF] = 0;
+                    V[instr.X] > V[instr.Y] ? V[0xF] = 1 : V[0xF] = 0;
                     V[instr.X] -= V[instr.Y];
                     break;
                 }
 
                 case 0x06:
                     V[0xF] = V[instr.Y] & 0x01;
-                    V[instr.X] = V[instr.Y] >> 1;
+                    V[instr.X] >>= 1;
                     break;
 
                 case 0x07:
-                    if (V[instr.Y] >= V[instr.X]) 
-                        V[0xF] = 1;
-                    else
-                        V[0xF] = 0;
-
+                    V[instr.Y] > V[instr.X] ? V[0xF] = 1 : V[0xF] = 0;
                     V[instr.X] = V[instr.Y] - V[instr.X];
                     break;
 
                 case 0x0E:
-                    V[0xF] = V[instr.Y] & 0x01;
-                    V[instr.X] = V[instr.Y] << 1;
+                    V[0xF] = (V[instr.X] & 0x80) >> 7;
+                    V[instr.X] = V[instr.X] << 1;
                     break;
             }
             break;
@@ -394,7 +386,13 @@ void JChip8::execute_instruction(instruction& instr)
                     break;
 
                 case 0x33:
+                {
+                    uint8 decimal_value = V[instr.X];
+                    memory[I] = decimal_value / 100;
+                    memory[I + 1] = (decimal_value / 10) % 10;
+                    memory[I + 2] = decimal_value % 10;
                     break;
+                }
 
                 case 0x55:
                 {
