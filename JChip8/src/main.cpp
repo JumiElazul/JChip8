@@ -3,6 +3,9 @@
 #include "sdl2_handler.h"
 #include "typedefs.h"
 #include <thread>
+#include <SDL2/SDL.h>
+#include "j_assembler.h"
+#include <iostream>
 
 int main(int argc, char* argv[])
 {
@@ -17,6 +20,7 @@ int main(int argc, char* argv[])
     {
         int32_t frame_start_time = sdl_handler.time();
         sdl_handler.handle_input(chip8);
+
         if (chip8.state == emulator_state::paused)
             continue;
 

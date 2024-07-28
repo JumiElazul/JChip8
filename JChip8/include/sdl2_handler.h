@@ -31,7 +31,7 @@ private:
     SDL_Renderer* _renderer;
     const emulator_config& _config;
 
-    void extract_rgba(uint32 color, uint8& r, uint8& g, uint8& b, uint8& a);
+    void extract_rgba(uint32 color, uint8& r, uint8& g, uint8& b, uint8& a) const;
 };
 
 #endif

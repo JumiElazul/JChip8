@@ -12,7 +12,7 @@ sdl2_handler::sdl2_handler(const emulator_config& config)
 {
     if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO | SDL_INIT_TIMER | SDL_INIT_EVENTS) < 0)
     {
-        std::cerr << "SDL could not initialize! SDL_Error: " << SDL_GetError() << std::endl;
+        std::cerr << "SDL could not initialize! SDL_Error: " << SDL_GetError() << '\n';
         exit(1);
     }
 
@@ -22,14 +22,14 @@ sdl2_handler::sdl2_handler(const emulator_config& config)
     _window = SDL_CreateWindow("JChip8", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, window_width, window_height, SDL_WINDOW_SHOWN);
     if (!_window)
     {
-        std::cerr << "Window could not be created! SDL_Error: " << SDL_GetError() << std::endl;
+        std::cerr << "Window could not be created! SDL_Error: " << SDL_GetError() << '\n';
         exit(1);
     }
 
     _renderer = SDL_CreateRenderer(_window, -1, SDL_RENDERER_ACCELERATED);
     if (!_renderer)
     {
-        std::cerr << "Renderer could not be created! SDL_Error: " << SDL_GetError() << std::endl;
+        std::cerr << "Renderer could not be created! SDL_Error: " << SDL_GetError() << '\n';
         exit(1);
     }
 }
@@ -137,6 +137,8 @@ void sdl2_handler::handle_input(JChip8& chip8)
                         chip8.load_next_test_rom();
                         break;
                     }
+                    default:
+                        break;
                 }
                 break;
             }
@@ -160,6 +162,8 @@ void sdl2_handler::handle_input(JChip8& chip8)
                     case SDL_SCANCODE_X: chip8.keypad[0x0] = false; break;
                     case SDL_SCANCODE_C: chip8.keypad[0xB] = false; break;
                     case SDL_SCANCODE_V: chip8.keypad[0xF] = false; break;
+                    default:
+                        break;
                 }
                 break;
             }
@@ -167,10 +171,11 @@ void sdl2_handler::handle_input(JChip8& chip8)
     }
 }
 
-void sdl2_handler::extract_rgba(uint32 color, uint8& r, uint8& g, uint8& b, uint8& a)
+void sdl2_handler::extract_rgba(uint32 color, uint8& r, uint8& g, uint8& b, uint8& a) const
 {
     r = (color >> 24) & 0xFF;
     g = (color >> 16) & 0xFF;
     b = (color >> 8)  & 0xFF;
     a = color         & 0xFF;
 }
+
