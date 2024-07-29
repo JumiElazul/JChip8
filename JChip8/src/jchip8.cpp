@@ -121,6 +121,7 @@ JChip8::JChip8(uint16 ips_)
     , _test_roms{}
     , _current_rom{ -1 }
     , _draw_flag{ false }
+    , _current_instruction{}
     , _instruction_history{ new instruction_history() }
     , _rng(std::random_device()())
 {
@@ -147,6 +148,7 @@ instruction JChip8::fetch_instruction()
         .Y      = static_cast<uint8>((instr.opcode & 0x00F0) >> 4)
     };
 
+    _current_instruction = instr;
     return instr;
 }
 
@@ -161,9 +163,6 @@ void JChip8::emulate_cycle()
 #endif
 
     execute_instruction(instr);
-
-    // Update timers
-    update_timers();
 }
 
 void JChip8::execute_instruction(instruction& instr)
@@ -296,7 +295,6 @@ void JChip8::execute_instruction(instruction& instr)
             // change after the execution of this instruction. As described above, VF is set to 1 if any screen
             // pixels are flipped from set to unset when the sprite is drawn, and to 0 if that does not happen.
             V[0xF] = 0;
-            _draw_flag = true;
             uint8 height = instr.N;
             uint8 start_x = V[instr.X];
             uint8 start_y = V[instr.Y];
@@ -344,6 +342,7 @@ void JChip8::execute_instruction(instruction& instr)
 
                     sprite <<= 1;
                 }
+                _draw_flag = true;
             }
             break;
         }
@@ -494,6 +493,11 @@ void JChip8::load_previous_test_rom()
     if (_current_rom < 0)
         _current_rom = _test_roms.size() - 1;
     load_game(_test_roms[_current_rom]);
+}
+
+const instruction& JChip8::current_instruction() const noexcept
+{
+    return _current_instruction;
 }
 
 void JChip8::init_state()

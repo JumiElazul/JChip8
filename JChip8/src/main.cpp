@@ -2,29 +2,36 @@
 #include "jchip8.h"
 #include "sdl2_handler.h"
 #include "typedefs.h"
-#include <thread>
-#include <SDL2/SDL.h>
 #include "j_assembler.h"
-#include <iostream>
 
 int main(int argc, char* argv[])
 {
     emulator_config config;
     sdl2_handler sdl_handler{ config };
-    JChip8 chip8{ 700 };
-    int16 frame_wait_time = 1000 / chip8.ips;
+    JChip8 chip8{ 2000 };
 
     chip8.load_next_test_rom();
 
     while (chip8.state != emulator_state::quit) 
     {
-        int32_t frame_start_time = sdl_handler.time();
         sdl_handler.handle_input(chip8);
 
         if (chip8.state == emulator_state::paused)
             continue;
 
-        chip8.emulate_cycle();
+        uint64 before_frame = sdl_handler.time();
+
+        for (uint16 i = 0; i < chip8.ips / 60; ++i)
+        {
+            chip8.emulate_cycle();
+
+            if ((chip8.current_instruction().opcode >> 12) == DRAW_INSTRUCTION)
+                break;
+        }
+
+        uint64 after_frame = sdl_handler.time();
+        const double time_elapsed = static_cast<double>((after_frame - before_frame) / 1000) / sdl_handler.performance_freq();
+        sdl_handler.delay(16.67f > time_elapsed ? 16.67f - time_elapsed : 0);
 
         if (chip8.draw_flag())
         {
@@ -32,10 +39,7 @@ int main(int argc, char* argv[])
             chip8.reset_draw_flag();
         }
 
-        int32_t frame_end_time = sdl_handler.time();
-        int32_t frame_duration = frame_end_time - frame_start_time;
-        if (frame_duration < frame_wait_time)
-            std::this_thread::sleep_for(std::chrono::milliseconds(frame_wait_time - frame_duration));
+        chip8.update_timers();
     }
 
     return 0;

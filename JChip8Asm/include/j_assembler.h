@@ -3,7 +3,8 @@
 
 class j_assembler
 {
-
+public:
+    void parse_input_file(const char* filepath);
 };
 
 #endif

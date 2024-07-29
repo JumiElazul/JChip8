@@ -8,6 +8,9 @@
 sdl2_handler::sdl2_handler(const emulator_config& config)
     : _window(nullptr)
     , _renderer(nullptr)
+    , _window_width(640)
+    , _window_height(320)
+    , _window_scale(2.5f)
     , _config(config)
 {
     if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO | SDL_INIT_TIMER | SDL_INIT_EVENTS) < 0)
@@ -16,17 +19,14 @@ sdl2_handler::sdl2_handler(const emulator_config& config)
         exit(1);
     }
 
-    int32 window_width = 640;
-    int32 window_height = 320;
-
-    _window = SDL_CreateWindow("JChip8", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, window_width, window_height, SDL_WINDOW_SHOWN);
+    _window = SDL_CreateWindow("JChip8", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, _window_width * _window_scale, _window_height * _window_scale, SDL_WINDOW_SHOWN);
     if (!_window)
     {
         std::cerr << "Window could not be created! SDL_Error: " << SDL_GetError() << '\n';
         exit(1);
     }
 
-    _renderer = SDL_CreateRenderer(_window, -1, SDL_RENDERER_ACCELERATED);
+    _renderer = SDL_CreateRenderer(_window, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
     if (!_renderer)
     {
         std::cerr << "Renderer could not be created! SDL_Error: " << SDL_GetError() << '\n';
@@ -41,9 +41,19 @@ sdl2_handler::~sdl2_handler()
     SDL_Quit();
 }
 
-uint32 sdl2_handler::time() const noexcept
+uint64 sdl2_handler::time() const noexcept
 {
-    return SDL_GetTicks();
+    return SDL_GetPerformanceCounter();
+}
+
+uint64 sdl2_handler::performance_freq() const noexcept
+{
+    return SDL_GetPerformanceFrequency();
+}
+
+void sdl2_handler::delay(uint32 time_ms) const noexcept
+{
+    SDL_Delay(time_ms);
 }
 
 SDL_Window* sdl2_handler::window() const noexcept { return _window; }
@@ -52,8 +62,8 @@ SDL_Renderer* sdl2_handler::renderer() const noexcept { return _renderer; }
 void sdl2_handler::draw_graphics(JChip8& chip8)
 {
     bool* gfx = &chip8.graphics[0];
-    float scale_x = 640.0f / GRAPHICS_WIDTH;
-    float scale_y = 320.0f / GRAPHICS_HEIGHT;
+    float scale_x = (_window_width * _window_scale)  / GRAPHICS_WIDTH;
+    float scale_y = (_window_height * _window_scale) / GRAPHICS_HEIGHT;
 
     uint8 bg_r;
     uint8 bg_g;
@@ -103,36 +113,36 @@ void sdl2_handler::handle_input(JChip8& chip8)
             }
             case SDL_KEYDOWN:
             {
-                switch (event.key.keysym.scancode)
+                switch (event.key.keysym.sym)
                 {
-                    case SDL_SCANCODE_1: chip8.keypad[0x1] = true; break;
-                    case SDL_SCANCODE_2: chip8.keypad[0x2] = true; break;
-                    case SDL_SCANCODE_3: chip8.keypad[0x3] = true; break;
-                    case SDL_SCANCODE_4: chip8.keypad[0xC] = true; break;
-                    case SDL_SCANCODE_Q: chip8.keypad[0x4] = true; break;
-                    case SDL_SCANCODE_W: chip8.keypad[0x5] = true; break;
-                    case SDL_SCANCODE_E: chip8.keypad[0x6] = true; break;
-                    case SDL_SCANCODE_R: chip8.keypad[0xD] = true; break;
-                    case SDL_SCANCODE_A: chip8.keypad[0x7] = true; break;
-                    case SDL_SCANCODE_S: chip8.keypad[0x8] = true; break;
-                    case SDL_SCANCODE_D: chip8.keypad[0x9] = true; break;
-                    case SDL_SCANCODE_F: chip8.keypad[0xE] = true; break;
-                    case SDL_SCANCODE_Z: chip8.keypad[0xA] = true; break;
-                    case SDL_SCANCODE_X: chip8.keypad[0x0] = true; break;
-                    case SDL_SCANCODE_C: chip8.keypad[0xB] = true; break;
-                    case SDL_SCANCODE_V: chip8.keypad[0xF] = true; break;
-                    case SDL_SCANCODE_ESCAPE: chip8.state = emulator_state::quit; break;
-                    case SDL_SCANCODE_F1:
+                    case SDLK_1: chip8.keypad[0x1] = true; break;
+                    case SDLK_2: chip8.keypad[0x2] = true; break;
+                    case SDLK_3: chip8.keypad[0x3] = true; break;
+                    case SDLK_4: chip8.keypad[0xC] = true; break;
+                    case SDLK_q: chip8.keypad[0x4] = true; break;
+                    case SDLK_w: chip8.keypad[0x5] = true; break;
+                    case SDLK_f: chip8.keypad[0x6] = true; break;
+                    case SDLK_p: chip8.keypad[0xD] = true; break;
+                    case SDLK_a: chip8.keypad[0x7] = true; break;
+                    case SDLK_r: chip8.keypad[0x8] = true; break;
+                    case SDLK_s: chip8.keypad[0x9] = true; break;
+                    case SDLK_t: chip8.keypad[0xE] = true; break;
+                    case SDLK_z: chip8.keypad[0xA] = true; break;
+                    case SDLK_x: chip8.keypad[0x0] = true; break;
+                    case SDLK_c: chip8.keypad[0xB] = true; break;
+                    case SDLK_d: chip8.keypad[0xF] = true; break;
+                    case SDLK_ESCAPE: chip8.state = emulator_state::quit; break;
+                    case SDLK_F1:
                     {
                         chip8.state == emulator_state::running ? chip8.state = emulator_state::paused : chip8.state = emulator_state::running;
                         break;
                     }
-                    case SDL_SCANCODE_F6:
+                    case SDLK_F6:
                     {
                         chip8.load_previous_test_rom();
                         break;
                     }
-                    case SDL_SCANCODE_F7:
+                    case SDLK_F7:
                     {
                         chip8.load_next_test_rom();
                         break;
@@ -144,24 +154,24 @@ void sdl2_handler::handle_input(JChip8& chip8)
             }
             case SDL_KEYUP:
             {
-                switch (event.key.keysym.scancode)
+                switch (event.key.keysym.sym)
                 {
-                    case SDL_SCANCODE_1: chip8.keypad[0x1] = false; break;
-                    case SDL_SCANCODE_2: chip8.keypad[0x2] = false; break;
-                    case SDL_SCANCODE_3: chip8.keypad[0x3] = false; break;
-                    case SDL_SCANCODE_4: chip8.keypad[0xC] = false; break;
-                    case SDL_SCANCODE_Q: chip8.keypad[0x4] = false; break;
-                    case SDL_SCANCODE_W: chip8.keypad[0x5] = false; break;
-                    case SDL_SCANCODE_E: chip8.keypad[0x6] = false; break;
-                    case SDL_SCANCODE_R: chip8.keypad[0xD] = false; break;
-                    case SDL_SCANCODE_A: chip8.keypad[0x7] = false; break;
-                    case SDL_SCANCODE_S: chip8.keypad[0x8] = false; break;
-                    case SDL_SCANCODE_D: chip8.keypad[0x9] = false; break;
-                    case SDL_SCANCODE_F: chip8.keypad[0xE] = false; break;
-                    case SDL_SCANCODE_Z: chip8.keypad[0xA] = false; break;
-                    case SDL_SCANCODE_X: chip8.keypad[0x0] = false; break;
-                    case SDL_SCANCODE_C: chip8.keypad[0xB] = false; break;
-                    case SDL_SCANCODE_V: chip8.keypad[0xF] = false; break;
+                    case SDLK_1: chip8.keypad[0x1] = false; break;
+                    case SDLK_2: chip8.keypad[0x2] = false; break;
+                    case SDLK_3: chip8.keypad[0x3] = false; break;
+                    case SDLK_4: chip8.keypad[0xC] = false; break;
+                    case SDLK_q: chip8.keypad[0x4] = false; break;
+                    case SDLK_w: chip8.keypad[0x5] = false; break;
+                    case SDLK_f: chip8.keypad[0x6] = false; break;
+                    case SDLK_p: chip8.keypad[0xD] = false; break;
+                    case SDLK_a: chip8.keypad[0x7] = false; break;
+                    case SDLK_r: chip8.keypad[0x8] = false; break;
+                    case SDLK_s: chip8.keypad[0x9] = false; break;
+                    case SDLK_t: chip8.keypad[0xE] = false; break;
+                    case SDLK_z: chip8.keypad[0xA] = false; break;
+                    case SDLK_x: chip8.keypad[0x0] = false; break;
+                    case SDLK_c: chip8.keypad[0xB] = false; break;
+                    case SDLK_d: chip8.keypad[0xF] = false; break;
                     default:
                         break;
                 }

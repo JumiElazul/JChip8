@@ -23,7 +23,9 @@
 //16 8-bit (one byte) general-purpose variable registers numbered 0 through F hexadecimal, ie. 0 through 15 in decimal, called V0 through VF
 //VF is also used as a flag register; many instructions will set it to either 1 or 0 based on some rule, for example using it as a carry flag
 
-#define DEBUG_INSTRUCTIONS
+//#define DEBUG_INSTRUCTION
+
+#define DRAW_INSTRUCTION 0x0D
 
 static constexpr uint16 MEMORY_SIZE = 4096;
 static constexpr uint16 GRAPHICS_WIDTH = 64;
@@ -101,20 +103,22 @@ public:
     [[nodiscard]] instruction fetch_instruction();
     void emulate_cycle();
     void execute_instruction(instruction& instr);
+    void update_timers();
     void load_game(const ROM& rom);
     void reset_draw_flag();
     void load_next_test_rom();
     void load_previous_test_rom();
+    const instruction& current_instruction() const noexcept;
 
 private:
     std::vector<ROM> _test_roms;
     int16 _current_rom;
     bool _draw_flag;
     instruction_history* _instruction_history;
+    instruction _current_instruction;
     std::mt19937 _rng;
     void init_state();
     void load_fontset();
-    void update_timers();
     void clear_graphics_buffer();
     uint8 generate_random_number();
     void load_test_suite_roms();
