@@ -8,7 +8,7 @@ int main(int argc, char* argv[])
 {
     emulator_config config;
     sdl2_handler sdl_handler{ config };
-    JChip8 chip8{ 600 };
+    JChip8 chip8{ 1000 };
 
     chip8.load_next_test_rom();
 

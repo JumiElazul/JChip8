@@ -421,15 +421,17 @@ void JChip8::execute_instruction(instruction& instr)
                     break;
 
                 case 0x29:
-                    I = V[instr.X] * 0x5;
+                    I = V[instr.X] * 5;
                     break;
 
                 case 0x33:
                 {
                     uint8 decimal_value = V[instr.X];
-                    memory[I] = decimal_value / 100;
-                    memory[I + 1] = (decimal_value / 10) % 10;
                     memory[I + 2] = decimal_value % 10;
+                    decimal_value /= 10;
+                    memory[I + 1] = decimal_value % 10;
+                    decimal_value /= 10;
+                    memory[I] = decimal_value;
                     break;
                 }
 
@@ -561,10 +563,7 @@ void JChip8::update_timers()
 
         if (sound_timer > 0)
         {
-            if (sound_timer == 1)
-            {
-                std::cout << "BEEP!\n";
-            }
+            std::cout << "BEEP!\n";
             --sound_timer;
         }
 
