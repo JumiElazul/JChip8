@@ -167,6 +167,7 @@ void JChip8::emulate_cycle()
 
 void JChip8::execute_instruction(instruction& instr)
 {
+    bool carry;
     switch (instr.opcode >> 12)
     {
         case 0x00:
@@ -213,24 +214,26 @@ void JChip8::execute_instruction(instruction& instr)
         case 0x08:
             switch (instr.N)            
             {
-                bool carry;
                 case 0x00:
                     V[instr.X] = V[instr.Y];
                     break;
 
                 case 0x01:
                     V[instr.X] |= V[instr.Y];
-                    V[0xF] = 0;
+                    carry = false;
+                    V[0xF] = carry;
                     break;
 
                 case 0x02:
                     V[instr.X] &= V[instr.Y];
-                    V[0xF] = 0;
+                    carry = false;
+                    V[0xF] = carry;
                     break;
 
                 case 0x03:
                     V[instr.X] ^= V[instr.Y];
-                    V[0xF] = 0;
+                    carry = false;
+                    V[0xF] = carry;
                     break;
 
                 case 0x04:
@@ -262,7 +265,8 @@ void JChip8::execute_instruction(instruction& instr)
                     carry = (V[instr.Y] & 0x80) >> 7;
                     V[instr.X] = V[instr.Y] << 1;
                     V[0xF] = carry;
-                    break;            }
+                    break;
+            }
             break;
 
         case 0x09:
@@ -521,7 +525,7 @@ void JChip8::init_state()
 
 void JChip8::load_fontset()
 {
-    static uint8 fontset[80] =
+    static uint8 fontset[] =
     {
         0xF0, 0x90, 0x90, 0x90, 0xF0, // 0
         0x20, 0x60, 0x20, 0x20, 0x70, // 1
@@ -542,10 +546,12 @@ void JChip8::load_fontset()
     };
 
     // Load the font into the beginning of memory
-    for (int i = 0; i < 80; ++i)
-    {
-        memory[0x0 + i] = fontset[i];
-    }
+    memcpy(&memory[0], fontset, 80);
+
+    //for (uint8 i = 0; i < 80; ++i)
+    //{
+    //    memory[0x0 + i] = fontset[i];
+    //}
 }
 
 void JChip8::update_timers()

@@ -23,7 +23,7 @@
 //16 8-bit (one byte) general-purpose variable registers numbered 0 through F hexadecimal, ie. 0 through 15 in decimal, called V0 through VF
 //VF is also used as a flag register; many instructions will set it to either 1 or 0 based on some rule, for example using it as a carry flag
 
-//#define DEBUG_INSTRUCTION
+#define DEBUG_INSTRUCTIONS
 
 #define DRAW_INSTRUCTION 0x0D
 
