@@ -10,7 +10,7 @@ sdl2_handler::sdl2_handler(const emulator_config& config)
     , _renderer(nullptr)
     , _window_width(640)
     , _window_height(320)
-    , _window_scale(2.5f)
+    , _window_scale(2.0f)
     , _config(config)
 {
     if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO | SDL_INIT_TIMER | SDL_INIT_EVENTS) < 0)
@@ -32,12 +32,33 @@ sdl2_handler::sdl2_handler(const emulator_config& config)
         std::cerr << "Renderer could not be created! SDL_Error: " << SDL_GetError() << '\n';
         exit(1);
     }
+
+    _want.freq = config.frequency;
+    _want.format = AUDIO_S16LSB;
+    _want.channels = 1;
+    _want.samples = 4096;
+    _want.callback = audio_callback;
+    _want.userdata = (void*)&config;
+
+    _audio_device = SDL_OpenAudioDevice(nullptr, 0, &_want, &_have, 0);
+    if (!_audio_device)
+    {
+        std::cerr << "Audio device could not be created! SDL_Error: " << SDL_GetError() << '\n';
+        exit(1);
+    }
+
+    if (_want.freq != _have.freq)
+    {
+        std::cerr << "Audio frequency requested in config is not available: " << SDL_GetError() << '\n';
+        exit(1);
+    }
 }
 
 sdl2_handler::~sdl2_handler()
 {
     SDL_DestroyRenderer(_renderer);
     SDL_DestroyWindow(_window);
+    SDL_CloseAudioDevice(_audio_device);
     SDL_Quit();
 }
 
@@ -181,11 +202,31 @@ void sdl2_handler::handle_input(JChip8& chip8)
     }
 }
 
+void sdl2_handler::play_device(bool play) const
+{
+    play ? SDL_PauseAudioDevice(_audio_device, 0) : SDL_PauseAudioDevice(_audio_device, 1);
+}
+
 void sdl2_handler::extract_rgba(uint32 color, uint8& r, uint8& g, uint8& b, uint8& a) const
 {
     r = (color >> 24) & 0xFF;
     g = (color >> 16) & 0xFF;
     b = (color >> 8)  & 0xFF;
     a = color         & 0xFF;
+}
+
+void sdl2_handler::audio_callback(void* userdata, uint8* stream, int len)
+{
+    emulator_config* config = static_cast<emulator_config*>(userdata);
+
+    int16* audio_data = (int16*)stream;
+    static uint32 running_sample_index = 0;
+    const int32 square_wave_period = config->frequency / config->wave_frequency;
+    const int32 half_square_wave_period = square_wave_period / 2;
+
+    for (int i = 0; i < len / 2; ++i)
+    {
+        audio_data[i] = ((running_sample_index++ / half_square_wave_period) % 2) ?  config->volume : -config->volume;
+    }
 }
 

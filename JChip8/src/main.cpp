@@ -38,7 +38,7 @@ int main(int argc, char* argv[])
             chip8.reset_draw_flag();
         }
 
-        chip8.update_timers();
+        chip8.update_timers(sdl_handler);
     }
 
     return 0;

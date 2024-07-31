@@ -1,10 +1,9 @@
 #ifndef JUMI_CHIP8_SDL_HANDLER_H
 #define JUMI_CHIP8_SDL_HANDLER_H
 #include <cstdint>
+#include <SDL2/SDL.h>
 #include "typedefs.h"
 
-struct SDL_Window;
-struct SDL_Renderer;
 struct ROM;
 struct emulator_config;
 
@@ -27,16 +26,21 @@ public:
     SDL_Renderer* renderer() const noexcept;
     void draw_graphics(JChip8& chip8);
     void handle_input(JChip8& chip8);
+    void play_device(bool play) const;
 
 private:
     SDL_Window* _window;
     SDL_Renderer* _renderer;
+    SDL_AudioSpec _want;
+    SDL_AudioSpec _have;
+    SDL_AudioDeviceID _audio_device;
     uint32 _window_width;
     uint32 _window_height;
     float _window_scale;
     const emulator_config& _config;
 
     void extract_rgba(uint32 color, uint8& r, uint8& g, uint8& b, uint8& a) const;
+    static void audio_callback(void* userdata, uint8* stream, int len);
 };
 
 #endif

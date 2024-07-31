@@ -31,6 +31,8 @@ static constexpr uint16 MEMORY_SIZE = 4096;
 static constexpr uint16 GRAPHICS_WIDTH = 64;
 static constexpr uint16 GRAPHICS_HEIGHT = 32;
 
+class sdl2_handler;
+
 struct instruction
 {
     uint16 opcode;
@@ -103,7 +105,7 @@ public:
     [[nodiscard]] instruction fetch_instruction();
     void emulate_cycle();
     void execute_instruction(instruction& instr);
-    void update_timers();
+    void update_timers(const sdl2_handler& sdl_handler);
     void load_game(const ROM& rom);
     void reset_draw_flag();
     void load_next_test_rom();

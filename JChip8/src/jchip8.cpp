@@ -2,6 +2,7 @@
 #pragma warning(disable:6385)
 
 #include "jchip8.h"
+#include "sdl2_handler.h"
 #include <chrono>
 #include <filesystem>
 #include <fstream>
@@ -12,7 +13,6 @@
 #include <utility>
 #include <string>
 #include <vector>
-
 
 instruction_history::instruction_history() 
     : _instructions{ }
@@ -550,26 +550,20 @@ void JChip8::load_fontset()
     memcpy(&memory[0], fontset, 80);
 }
 
-void JChip8::update_timers()
+void JChip8::update_timers(const sdl2_handler& sdl_handler)
 {
-    static std::chrono::high_resolution_clock::time_point last_time = std::chrono::high_resolution_clock::now();
-
-    std::chrono::high_resolution_clock::time_point current_time = std::chrono::high_resolution_clock::now();
-    uint64 elapsed_time = static_cast<uint64>(std::chrono::duration_cast<std::chrono::milliseconds>(current_time - last_time).count());
-
     // The timer loop happens at 60hz
-    if (elapsed_time >= 1000 / 60)
+    if (delay_timer > 0)
+        --delay_timer;
+
+    if (sound_timer > 0)
     {
-        if (delay_timer > 0)
-            --delay_timer;
-
-        if (sound_timer > 0)
-        {
-            std::cout << "BEEP!\n";
-            --sound_timer;
-        }
-
-        last_time = current_time;
+        sdl_handler.play_device(true);
+        --sound_timer;
+    }
+    else
+    {
+        sdl_handler.play_device(false);
     }
 }
 
