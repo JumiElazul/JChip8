@@ -126,7 +126,7 @@ JChip8::JChip8(uint16 ips_)
     , _rng(std::random_device()())
 {
     load_test_suite_roms();
-    load_fontset();
+    init_state();
 }
 
 JChip8::~JChip8()
@@ -520,6 +520,7 @@ void JChip8::init_state()
     memset(keypad, 0, sizeof(keypad));
     state = emulator_state::running;
 
+    load_fontset();
     _instruction_history->clear();
 }
 
@@ -547,11 +548,6 @@ void JChip8::load_fontset()
 
     // Load the font into the beginning of memory
     memcpy(&memory[0], fontset, 80);
-
-    //for (uint8 i = 0; i < 80; ++i)
-    //{
-    //    memory[0x0 + i] = fontset[i];
-    //}
 }
 
 void JChip8::update_timers()
