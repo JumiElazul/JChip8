@@ -63,3 +63,4 @@ Test suite roms are from Timendus (thank you!), and should be placed in the "JCh
 | --- | --- |
 | ❌ | Configurable .config file, with built in defaults if the file doesn't exist or is invalid |
 | ❌ | SuperChip functionality |
+| ❌ | Small, easy to use text file parser/reader that will convert hex/numerical inputs into Chip8 instructions and output a ROM |

@@ -2,6 +2,10 @@
     "name": "jchip8",
     "version-string": "0.0.1",
     "dependencies": [
-        "sdl2"
+        "sdl2",
+        {
+            "name": "imgui",
+            "features": ["sdl2-binding", "sdl2-renderer-binding"]
+        }
     ]
 }

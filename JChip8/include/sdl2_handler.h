@@ -25,6 +25,7 @@ public:
     SDL_Window* window() const noexcept;
     SDL_Renderer* renderer() const noexcept;
     void draw_graphics(JChip8& chip8);
+    void clear_framebuffer() const;
     void handle_input(JChip8& chip8);
     void play_device(bool play) const;
 

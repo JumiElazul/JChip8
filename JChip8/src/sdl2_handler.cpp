@@ -5,6 +5,10 @@
 #include <SDL2/SDL.h>
 #include <iostream>
 
+#include <imgui.h>
+#include <imgui_impl_sdl2.h>
+#include <imgui_impl_sdlrenderer2.h>
+
 sdl2_handler::sdl2_handler(const emulator_config& config)
     : _window(nullptr)
     , _renderer(nullptr)
@@ -117,7 +121,11 @@ void sdl2_handler::draw_graphics(JChip8& chip8)
             SDL_RenderDrawRect(_renderer, &pixel);
         }
     }
-    SDL_RenderPresent(_renderer);
+}
+
+void sdl2_handler::clear_framebuffer() const
+{
+    SDL_RenderClear(_renderer);
 }
 
 void sdl2_handler::handle_input(JChip8& chip8)
@@ -125,6 +133,7 @@ void sdl2_handler::handle_input(JChip8& chip8)
     SDL_Event event;
     while (SDL_PollEvent(&event))
     {
+        ImGui_ImplSDL2_ProcessEvent(&event);
         switch (event.type)
         {
             case SDL_QUIT:
