@@ -27,9 +27,10 @@
 
 #define DRAW_INSTRUCTION 0x0D
 
-static constexpr uint16 MEMORY_SIZE = 4096;
-static constexpr uint16 GRAPHICS_WIDTH = 64;
-static constexpr uint16 GRAPHICS_HEIGHT = 32;
+static constexpr uint16 MEMORY_SIZE        = 4096;
+static constexpr uint16 ROM_START_LOCATION = 0x200;
+static constexpr uint16 GRAPHICS_WIDTH     = 64;
+static constexpr uint16 GRAPHICS_HEIGHT    = 32;
 
 class sdl2_handler;
 
@@ -54,13 +55,6 @@ enum class emulator_state
     running,
     paused,
     quit,
-};
-
-struct ROM
-{
-    std::string filepath;
-    std::string name;
-    uint16 size;
 };
 
 class instruction_history
@@ -103,27 +97,26 @@ public:
 
     [[nodiscard]] bool draw_flag() const noexcept;
     [[nodiscard]] instruction fetch_instruction();
+    [[nodiscard]] bool rom_loaded() const noexcept;
     void emulate_cycle();
     void execute_instruction(instruction& instr);
     void update_timers(const sdl2_handler& sdl_handler);
-    void load_game(const ROM& rom);
+    void unload_ROM();
+    void load_ROM(const char* rom_path);
     void reset_draw_flag();
-    void load_next_test_rom();
-    void load_previous_test_rom();
     const instruction& current_instruction() const noexcept;
 
 private:
-    std::vector<ROM> _test_roms;
-    int16 _current_rom;
+    bool _rom_loaded;
     bool _draw_flag;
     instruction_history* _instruction_history;
     instruction _current_instruction;
     std::mt19937 _rng;
+
     void init_state();
     void load_fontset();
     void clear_graphics_buffer();
     uint8 generate_random_number();
-    void load_test_suite_roms();
  };
 
 #endif

@@ -8,11 +8,12 @@ struct ROM;
 struct emulator_config;
 
 class JChip8;
+class imgui_handler;
 
 class sdl2_handler
 {
 public:
-    sdl2_handler(const emulator_config& config);
+    sdl2_handler(uint32 window_width, uint32 window_height, const emulator_config& config);
     ~sdl2_handler();
     sdl2_handler(const sdl2_handler&) = delete;
     sdl2_handler& operator=(const sdl2_handler&) = delete;
@@ -26,8 +27,9 @@ public:
     SDL_Renderer* renderer() const noexcept;
     void draw_graphics(JChip8& chip8);
     void clear_framebuffer() const;
-    void handle_input(JChip8& chip8);
+    void handle_input(JChip8& chip8, const imgui_handler& gui_handler);
     void play_device(bool play) const;
+    void set_window_size(uint32 width, uint32 height);
 
 private:
     SDL_Window* _window;

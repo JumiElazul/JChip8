@@ -108,7 +108,7 @@ const std::string& instruction_history::get_instruction_description(uint16 opcod
 JChip8::JChip8(uint16 ips_)
     : memory{ 0 }
     , V{ 0 }
-    , pc{ 0x200 }
+    , pc{ ROM_START_LOCATION }
     , graphics{ 0 }
     , stack{ 0 }
     , sp{ 0 }
@@ -118,14 +118,12 @@ JChip8::JChip8(uint16 ips_)
     , keypad{ 0 }
     , state{ emulator_state::running }
     , ips{ ips_ }
-    , _test_roms{}
-    , _current_rom{ -1 }
+    , _rom_loaded{ false }
     , _draw_flag{ false }
     , _current_instruction{}
     , _instruction_history{ new instruction_history() }
     , _rng(std::random_device()())
 {
-    load_test_suite_roms();
     init_state();
 }
 
@@ -150,6 +148,11 @@ instruction JChip8::fetch_instruction()
 
     _current_instruction = instr;
     return instr;
+}
+
+bool JChip8::rom_loaded() const noexcept
+{
+    return _rom_loaded;
 }
 
 void JChip8::emulate_cycle()
@@ -469,37 +472,31 @@ void JChip8::execute_instruction(instruction& instr)
     }
 }
 
-void JChip8::load_game(const ROM& rom)
+void JChip8::load_ROM(const char* rom_path)
 {
     init_state();
 
-    std::ifstream file(rom.filepath, std::ios::binary);
+    std::ifstream file(rom_path, std::ios::binary);
     if (!file) throw std::runtime_error("Could not open file");
 
-    if (rom.size > (MEMORY_SIZE - 0x200)) throw std::runtime_error("File too large to fit in memory");
+    file.seekg(0, std::ios::end);
+    std::streamsize rom_size = file.tellg();
+    file.seekg(0, std::ios::beg);
 
-    for (size_t i = 0; i < rom.size; ++i)
+    if (rom_size > (MEMORY_SIZE - 0x200))
     {
-        memory[0x200 + i] = file.get();
+        throw std::runtime_error("File is too big to be loaded into memory");
     }
+
+    for (size_t i = 0; i < rom_size; ++i)
+    {
+        memory[ROM_START_LOCATION + i] = file.get();
+    }
+
+    _rom_loaded = true;
 }
 
 void JChip8::reset_draw_flag() { _draw_flag = false; }
-
-void JChip8::load_next_test_rom()
-{
-    _current_rom += 1;
-    _current_rom %= _test_roms.size();
-    load_game(_test_roms[_current_rom]);
-}
-
-void JChip8::load_previous_test_rom()
-{
-    _current_rom -= 1;
-    if (_current_rom < 0)
-        _current_rom = _test_roms.size() - 1;
-    load_game(_test_roms[_current_rom]);
-}
 
 const instruction& JChip8::current_instruction() const noexcept
 {
@@ -510,7 +507,7 @@ void JChip8::init_state()
 {
     memset(memory, 0, sizeof(memory));
     memset(V, 0, sizeof(V));
-    pc = 0x200;
+    pc = ROM_START_LOCATION;
     memset(graphics, 0, sizeof(graphics));
     memset(stack, 0, sizeof(stack));
     sp = 0;
@@ -567,6 +564,12 @@ void JChip8::update_timers(const sdl2_handler& sdl_handler)
     }
 }
 
+void JChip8::unload_ROM()
+{
+    _rom_loaded = false;
+    init_state();
+}
+
 void JChip8::clear_graphics_buffer()
 {
     memset(graphics, false, sizeof(graphics));
@@ -577,46 +580,6 @@ uint8 JChip8::generate_random_number()
 {
     static std::uniform_int_distribution<int> uid(0, std::numeric_limits<uint8>::max());
     return uid(_rng);
-}
-
-void JChip8::load_test_suite_roms()
-{
-    std::filesystem::path path = std::filesystem::current_path().append("test_suite_roms");
-
-    auto get_rom_size = [&](const std::string& filepath) {
-        std::ifstream rom_file(filepath, std::ios::binary);
-        if (!rom_file) throw std::runtime_error("Could not open file");
-
-        rom_file.seekg(0, std::ios::end);
-        uint16 size = static_cast<uint16>(rom_file.tellg());
-        return size;
-    };
-
-    try
-    {
-        for (const auto& entry : std::filesystem::directory_iterator(path))
-        {
-            if (entry.is_regular_file() && entry.path().extension() == ".ch8")
-            {
-                ROM rom =
-                {
-                    .filepath = entry.path().string(),
-                    .name = entry.path().filename().replace_extension("").string(),
-                    .size = get_rom_size(rom.filepath)
-                };
-
-                _test_roms.push_back(rom);
-            }
-        }
-    }
-    catch (const std::filesystem::filesystem_error& e)
-    {
-        std::cerr << "Filesystem error: " << e.what() << '\n';
-    }
-    catch (const std::exception& e)
-    {
-        std::cerr << "Exception swallower: " << e.what() << '\n';
-    }
 }
 
 #pragma warning(pop)

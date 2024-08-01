@@ -1,19 +1,16 @@
 #include "sdl2_handler.h"
 #include "emulator_config.h"
+#include "imgui_handler.h"
 #include "JChip8.h"
 #include "typedefs.h"
 #include <SDL2/SDL.h>
 #include <iostream>
 
-#include <imgui.h>
-#include <imgui_impl_sdl2.h>
-#include <imgui_impl_sdlrenderer2.h>
-
-sdl2_handler::sdl2_handler(const emulator_config& config)
+sdl2_handler::sdl2_handler(uint32 window_width, uint32 window_height, const emulator_config& config)
     : _window(nullptr)
     , _renderer(nullptr)
-    , _window_width(640)
-    , _window_height(320)
+    , _window_width(window_width)
+    , _window_height(window_height)
     , _window_scale(2.0f)
     , _config(config)
 {
@@ -128,12 +125,12 @@ void sdl2_handler::clear_framebuffer() const
     SDL_RenderClear(_renderer);
 }
 
-void sdl2_handler::handle_input(JChip8& chip8)
+void sdl2_handler::handle_input(JChip8& chip8, const imgui_handler& gui_handler)
 {
     SDL_Event event;
     while (SDL_PollEvent(&event))
     {
-        ImGui_ImplSDL2_ProcessEvent(&event);
+        gui_handler.process_event(&event);
         switch (event.type)
         {
             case SDL_QUIT:
@@ -165,16 +162,6 @@ void sdl2_handler::handle_input(JChip8& chip8)
                     case SDLK_F1:
                     {
                         chip8.state == emulator_state::running ? chip8.state = emulator_state::paused : chip8.state = emulator_state::running;
-                        break;
-                    }
-                    case SDLK_F6:
-                    {
-                        chip8.load_previous_test_rom();
-                        break;
-                    }
-                    case SDLK_F7:
-                    {
-                        chip8.load_next_test_rom();
                         break;
                     }
                     default:
@@ -214,6 +201,14 @@ void sdl2_handler::handle_input(JChip8& chip8)
 void sdl2_handler::play_device(bool play) const
 {
     play ? SDL_PauseAudioDevice(_audio_device, 0) : SDL_PauseAudioDevice(_audio_device, 1);
+}
+
+void sdl2_handler::set_window_size(uint32 width, uint32 height)
+{
+    _window_width = width;
+    _window_height = height;
+
+    SDL_SetWindowSize(_window, width * _window_scale, height * _window_scale);
 }
 
 void sdl2_handler::extract_rgba(uint32 color, uint8& r, uint8& g, uint8& b, uint8& a) const
