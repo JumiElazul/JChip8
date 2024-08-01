@@ -57,3 +57,9 @@ Test suite roms are from Timendus (thank you!), and should be placed in the "JCh
 | ✅ | `0xFX65` | Fills `V0` to `VX` (including `VX`) with values from memory starting at address `I`. `I` is increased by 1 for each value written. |
 
 
+## TODO List:
+
+| Implemented | Description |
+| --- | --- |
+| ❌ | Configurable .config file, with built in defaults if the file doesn't exist or is invalid |
+| ❌ | SuperChip functionality |
