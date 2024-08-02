@@ -48,6 +48,12 @@ int main(int argc, char* argv[])
 
         gui.begin_frame(sdl_handler);
         gui.draw_gui(chip8);
+
+        if (gui.init_default_config())
+            create_default_config_file();
+        if (gui.reload_config())
+            config = load_configuration_file();
+
         gui.end_frame();
 
         SDL_RenderPresent(sdl_handler.renderer());

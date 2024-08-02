@@ -14,7 +14,11 @@ struct emulator_config
     int16 volume = 1200;
 };
 
-extern std::string config_filepath;
+namespace config
+{
+    extern std::string s_config_filepath;
+}
+
 emulator_config load_configuration_file();
 emulator_config create_default_config_file();
 std::string to_hex(uint32 value);

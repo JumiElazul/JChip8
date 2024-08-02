@@ -1,15 +1,22 @@
 #include "imgui_handler.h"
 #include "sdl2_handler.h"
+#include "emulator_config.h"
 #include "JChip8.h"
 #include "typedefs.h"
 #include <imgui.h>
 #include <imgui_impl_sdl2.h>
 #include <imgui_impl_sdlrenderer2.h>
-#include "tinyfiledialogs/tinyfiledialogs.h"
+#include <tinyfiledialogs/tinyfiledialogs.h>
 #include <string>
+
+#ifdef _WIN32
+#include <windows.h>
+#endif
 
 imgui_handler::imgui_handler(const sdl2_handler& sdl_handler)
     : _menu_height{ 20 }
+    , _reload_config{ false }
+    , _init_default_config{ false }
 {
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
@@ -31,8 +38,21 @@ const uint16& imgui_handler::get_window_height() const noexcept
     return _menu_height;
 }
 
+bool imgui_handler::reload_config() const noexcept
+{
+    return _reload_config;
+}
+
+bool imgui_handler::init_default_config() const noexcept
+{
+    return _init_default_config;
+}
+
 void imgui_handler::begin_frame(const sdl2_handler& sdl_handler)
 {
+    _reload_config = false;
+    _init_default_config = false;
+
     ImGui_ImplSDL2_NewFrame(sdl_handler.window());
     ImGui_ImplSDLRenderer2_NewFrame();
     ImGui::NewFrame();
@@ -59,9 +79,18 @@ void imgui_handler::draw_gui(JChip8& chip8)
         }
         if (ImGui::BeginMenu("Configuration"))
         {
-            if (ImGui::MenuItem("Settings"))
+            if (ImGui::MenuItem("Open Config File"))
             {
-                // Handle settings here
+                open_config_file(config::s_config_filepath.c_str());
+            }
+            if (ImGui::MenuItem("Reload Config File"))
+            {
+                _reload_config = true;
+            }
+            if (ImGui::MenuItem("Reset Config to Defaults"))
+            {
+                _init_default_config = true;
+                _reload_config = true;
             }
             ImGui::EndMenu();
         }
@@ -100,4 +129,17 @@ std::string imgui_handler::open_file_dialog() const
     {
         // File dialog was most likely cancelled
     }
+}
+
+void imgui_handler::open_config_file(const char* filepath)
+{
+#if defined(_WIN32)
+    ShellExecuteA(nullptr, "open", filepath, nullptr, nullptr, SW_SHOWNORMAL);
+#elif defined(__linux__)
+    std::string command = "xdg-open " + std::string(filepath);
+    std::system(command.c_str());
+#elif defined(__APPLE__) // :: Untested ::
+    std::string command = "open " + std::string(filepath);
+    std::system(command.c_str());
+#endif
 }
