@@ -14,10 +14,10 @@ int main(int argc, char* argv[])
 
     sdl2_handler sdl_handler{ WINDOW_WIDTH, WINDOW_HEIGHT, config };
     imgui_handler gui{ sdl_handler };
-    JChip8 chip8{ 1000 };
+    JChip8 chip8{ config.instructions_per_second };
 
     uint16 menu_height = gui.get_window_height();
-    sdl_handler.set_window_size(WINDOW_WIDTH, WINDOW_HEIGHT + menu_height);
+    sdl_handler.set_window_size(WINDOW_WIDTH, WINDOW_HEIGHT, menu_height);
 
     while (chip8.state != emulator_state::quit)
     {
@@ -31,7 +31,9 @@ int main(int argc, char* argv[])
 
         if (chip8.rom_loaded())
         {
-            for (uint16 i = 0; i < chip8.ips / 60; ++i)
+            uint16 instructions_per_frame = config.instructions_per_second / 60;
+
+            for (uint16 i = 0; i < instructions_per_frame; ++i)
             {
                 chip8.emulate_cycle();
 
@@ -52,7 +54,10 @@ int main(int argc, char* argv[])
         if (gui.init_default_config())
             create_default_config_file();
         if (gui.reload_config())
+        {
             config = load_configuration_file();
+            chip8.ips = config.instructions_per_second;
+        }
 
         gui.end_frame();
 

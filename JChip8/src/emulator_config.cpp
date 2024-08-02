@@ -72,6 +72,7 @@ void to_json(nlohmann::json& j, const emulator_config& config)
         {"frequency", config.frequency},
         {"wave_frequency", config.wave_frequency},
         {"volume", config.volume},
+        {"instructions_per_second", config.instructions_per_second},
     };
 }
 
@@ -83,4 +84,5 @@ void from_json(const nlohmann::json& j, emulator_config& config)
     j.at("frequency").get_to(config.frequency);
     j.at("wave_frequency").get_to(config.wave_frequency);
     j.at("volume").get_to(config.volume);
+    j.at("instructions_per_second").get_to(config.instructions_per_second);
 }

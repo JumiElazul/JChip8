@@ -16,6 +16,14 @@ F7 will cycle forward to the next test suite rom.
 Test suite roms are from Timendus (thank you!), and should be placed in the "JChip8/JChip8/test_suite_roms" directory.  They can be found:
 * [Timendus Chip8 Test Suite](https://github.com/Timendus/chip8-test-suite)
 
+
+## Configuration
+The .exe location contains a config.json file which can be edited and configured to change the behaviour of the emulator in realtime.
+After making a change, click the "Reload Config File" in the GUI for the changes to take effect.
+Due to the way the instruction loop works, the "instructions_per_second" field in the configuration file will not be correct with a value
+under 60, so use values >= 60.  This is due to the main emulation loop batching instructions per frame of instructions_per_second / 60.
+
+
 ## Opcodes:
 
 | Implemented | Opcode | Description |
@@ -61,6 +69,6 @@ Test suite roms are from Timendus (thank you!), and should be placed in the "JCh
 
 | Implemented | Description |
 | --- | --- |
-| ❌ | Configurable .config file, with built in defaults if the file doesn't exist or is invalid |
+| ✅ | Configurable .config file, with built in defaults if the file doesn't exist or is invalid |
 | ❌ | SuperChip functionality |
 | ❌ | Small, easy to use text file parser/reader that will convert hex/numerical inputs into Chip8 instructions and output a ROM |

@@ -29,7 +29,7 @@ public:
     void clear_framebuffer() const;
     void handle_input(JChip8& chip8, const imgui_handler& gui_handler);
     void play_device(bool play) const;
-    void set_window_size(uint32 width, uint32 height);
+    void set_window_size(uint32 width, uint32 height, uint32 menu_height);
 
 private:
     SDL_Window* _window;
@@ -40,6 +40,7 @@ private:
     uint32 _window_width;
     uint32 _window_height;
     float _window_scale;
+    uint32 _menu_height;
     const emulator_config& _config;
 
     void extract_rgba(uint32 color, uint8& r, uint8& g, uint8& b, uint8& a) const;

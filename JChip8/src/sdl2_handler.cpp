@@ -12,6 +12,7 @@ sdl2_handler::sdl2_handler(uint32 window_width, uint32 window_height, const emul
     , _window_width(window_width)
     , _window_height(window_height)
     , _window_scale(2.0f)
+    , _menu_height()
     , _config(config)
 {
     if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO | SDL_INIT_TIMER | SDL_INIT_EVENTS) < 0)
@@ -106,9 +107,9 @@ void sdl2_handler::draw_graphics(JChip8& chip8)
         if (gfx[i]) SDL_SetRenderDrawColor(_renderer, fg_r, fg_g, fg_b, fg_a);
         else        SDL_SetRenderDrawColor(_renderer, bg_r, bg_g, bg_b, bg_a);
 
-        int32 x = i % GRAPHICS_WIDTH;
-        int32 y = i / GRAPHICS_WIDTH;
-        pixel = { static_cast<int>(x * scale_x), static_cast<int>(y * scale_y), static_cast<int>(scale_x), static_cast<int>(scale_y) };
+        int32 x = (i % GRAPHICS_WIDTH);
+        int32 y = (i / GRAPHICS_WIDTH);
+        pixel = { static_cast<int>(x * scale_x), static_cast<int>((y * scale_y) + _menu_height), static_cast<int>(scale_x), static_cast<int>(scale_y) };
 
         SDL_RenderFillRect(_renderer, &pixel);
 
@@ -203,12 +204,13 @@ void sdl2_handler::play_device(bool play) const
     play ? SDL_PauseAudioDevice(_audio_device, 0) : SDL_PauseAudioDevice(_audio_device, 1);
 }
 
-void sdl2_handler::set_window_size(uint32 width, uint32 height)
+void sdl2_handler::set_window_size(uint32 width, uint32 height, uint32 menu_height)
 {
     _window_width = width;
     _window_height = height;
+    _menu_height = menu_height;
 
-    SDL_SetWindowSize(_window, width * _window_scale, height * _window_scale);
+    SDL_SetWindowSize(_window, width * _window_scale, (height * _window_scale) + menu_height);
 }
 
 void sdl2_handler::extract_rgba(uint32 color, uint8& r, uint8& g, uint8& b, uint8& a) const

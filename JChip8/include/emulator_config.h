@@ -12,6 +12,7 @@ struct emulator_config
     uint32 frequency = 44100;
     uint32 wave_frequency = 440;
     int16 volume = 1200;
+    uint16 instructions_per_second = 1000;
 };
 
 namespace config
