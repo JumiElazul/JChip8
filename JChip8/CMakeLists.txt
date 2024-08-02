@@ -2,17 +2,18 @@
 
 set(SOURCES
     "src/main.cpp"
+    "src/emulator_config.cpp"
     "src/jchip8.cpp"
     "src/imgui_handler.cpp"
     "src/sdl2_handler.cpp"
 )
 
 set(HEADERS
+    "include/emulator_config.h"
     "include/jchip8.h"
     "include/imgui_handler.h"
     "include/sdl2_handler.h"
     "include/typedefs.h"
-    "include/emulator_config.h"
 )
 
 add_executable(${exe_name} ${SOURCES} ${HEADERS})

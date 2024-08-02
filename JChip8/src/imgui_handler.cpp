@@ -53,7 +53,7 @@ void imgui_handler::draw_gui(JChip8& chip8)
             if (ImGui::MenuItem("Unload ROM"))
             {
                 chip8.unload_ROM();
-            } ImGui::Separator();
+            }
 
             ImGui::EndMenu();
         }

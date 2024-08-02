@@ -10,7 +10,8 @@ static constexpr uint32 WINDOW_HEIGHT = 320;
 
 int main(int argc, char* argv[])
 {
-    emulator_config config;
+    emulator_config config = load_configuration_file();
+
     sdl2_handler sdl_handler{ WINDOW_WIDTH, WINDOW_HEIGHT, config };
     imgui_handler gui{ sdl_handler };
     JChip8 chip8{ 1000 };
@@ -41,6 +42,7 @@ int main(int argc, char* argv[])
             const double time_elapsed = static_cast<double>((after_frame - before_frame) / 1000) / sdl_handler.performance_freq();
             sdl_handler.delay(16.67f > time_elapsed ? 16.67f - time_elapsed : 0);
             sdl_handler.draw_graphics(chip8);
+
             chip8.update_timers(sdl_handler);
         }
 
