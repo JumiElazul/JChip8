@@ -30,6 +30,8 @@ public:
     void handle_input(JChip8& chip8, const imgui_handler& gui_handler);
     void play_device(bool play) const;
     void set_window_size(uint32 width, uint32 height, uint32 menu_height);
+    void show_window() const noexcept;
+    void render() const noexcept;
 
 private:
     SDL_Window* _window;

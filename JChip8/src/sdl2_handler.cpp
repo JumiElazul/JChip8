@@ -4,6 +4,7 @@
 #include "JChip8.h"
 #include "typedefs.h"
 #include <SDL2/SDL.h>
+#include <SDL2/SDL_image.h>
 #include <iostream>
 
 sdl2_handler::sdl2_handler(uint32 window_width, uint32 window_height, const emulator_config& config)
@@ -21,12 +22,23 @@ sdl2_handler::sdl2_handler(uint32 window_width, uint32 window_height, const emul
         exit(1);
     }
 
-    _window = SDL_CreateWindow("JChip8", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, _window_width * _window_scale, _window_height * _window_scale, SDL_WINDOW_SHOWN);
+    _window = SDL_CreateWindow("JChip8",
+        SDL_WINDOWPOS_UNDEFINED,
+        SDL_WINDOWPOS_UNDEFINED,
+        _window_width * _window_scale,
+        _window_height * _window_scale,
+        SDL_WINDOW_HIDDEN);
+
     if (!_window)
     {
         std::cerr << "Window could not be created! SDL_Error: " << SDL_GetError() << '\n';
         exit(1);
     }
+
+    SDL_Surface* icon = IMG_Load("assets/icon.png");
+    if (icon) SDL_SetWindowIcon(_window, icon);
+
+    SDL_FreeSurface(icon);
 
     _renderer = SDL_CreateRenderer(_window, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
     if (!_renderer)
@@ -211,6 +223,16 @@ void sdl2_handler::set_window_size(uint32 width, uint32 height, uint32 menu_heig
     _menu_height = menu_height;
 
     SDL_SetWindowSize(_window, width * _window_scale, (height * _window_scale) + menu_height);
+}
+
+void sdl2_handler::show_window() const noexcept
+{
+    SDL_ShowWindow(_window);
+}
+
+void sdl2_handler::render() const noexcept
+{
+    SDL_RenderPresent(_renderer);
 }
 
 void sdl2_handler::extract_rgba(uint32 color, uint8& r, uint8& g, uint8& b, uint8& a) const

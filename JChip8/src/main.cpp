@@ -18,6 +18,7 @@ int main(int argc, char* argv[])
 
     uint16 menu_height = gui.get_window_height();
     sdl_handler.set_window_size(WINDOW_WIDTH, WINDOW_HEIGHT, menu_height);
+    sdl_handler.show_window();
 
     while (chip8.state != emulator_state::quit)
     {
@@ -40,11 +41,8 @@ int main(int argc, char* argv[])
                 if ((chip8.current_instruction().opcode >> 12) == DRAW_INSTRUCTION)
                     break;
             }
-            uint64 after_frame = sdl_handler.time();
-            const double time_elapsed = static_cast<double>((after_frame - before_frame) / 1000) / sdl_handler.performance_freq();
-            sdl_handler.delay(16.67f > time_elapsed ? 16.67f - time_elapsed : 0);
-            sdl_handler.draw_graphics(chip8);
 
+            sdl_handler.draw_graphics(chip8);
             chip8.update_timers(sdl_handler);
         }
 
@@ -60,8 +58,12 @@ int main(int argc, char* argv[])
         }
 
         gui.end_frame();
+        sdl_handler.render();
 
-        SDL_RenderPresent(sdl_handler.renderer());
+        uint64 after_frame = sdl_handler.time();
+        const double frame_duration = 1000.0 / 60.0;
+        const double time_elapsed = static_cast<double>((after_frame - before_frame) / 1000) / sdl_handler.performance_freq();
+        sdl_handler.delay(frame_duration > time_elapsed ? frame_duration - time_elapsed : 0);
     }
 
     return 0;
