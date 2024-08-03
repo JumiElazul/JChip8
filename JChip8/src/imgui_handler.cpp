@@ -14,7 +14,7 @@
 #endif
 
 imgui_handler::imgui_handler(const sdl2_handler& sdl_handler)
-    : _menu_height{ 20 }
+    : _menu_height{  }
     , _reload_config{ false }
     , _init_default_config{ false }
 {
@@ -79,19 +79,28 @@ void imgui_handler::draw_gui(JChip8& chip8)
         }
         if (ImGui::BeginMenu("Configuration"))
         {
+            static bool enable_superchip = false;
+            if (ImGui::Checkbox("Enable Superchip", &enable_superchip))
+            {
+                if (enable_superchip)
+                    chip8.mode = chip8_mode::superchip;
+                else
+                    chip8.mode = chip8_mode::chip8;
+
+            } ImGui::Separator();
             if (ImGui::MenuItem("Open Config File"))
             {
                 open_config_file(config::s_config_filepath.c_str());
-            }
+            } ImGui::Separator();
             if (ImGui::MenuItem("Reload Config File"))
             {
                 _reload_config = true;
-            }
+            } ImGui::Separator();
             if (ImGui::MenuItem("Reset Config to Defaults"))
             {
                 _init_default_config = true;
                 _reload_config = true;
-            }
+            } ImGui::Separator();
             ImGui::EndMenu();
         }
         if (ImGui::BeginMenu("Exit"))

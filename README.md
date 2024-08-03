@@ -70,6 +70,7 @@ under 60, so use values >= 60.  This is due to the main emulation loop batching 
 | Implemented | Description |
 | --- | --- |
 | ✅ | Configurable .config file, with built in defaults if the file doesn't exist or is invalid |
+| ❌ | Save states
 | ❌ | SuperChip functionality |
 | ❌ | Small, easy to use text file parser/reader that will convert hex/numerical inputs into Chip8 instructions and output a ROM |
 

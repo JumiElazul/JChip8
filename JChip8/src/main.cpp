@@ -43,9 +43,9 @@ int main(int argc, char* argv[])
             }
 
             sdl_handler.draw_graphics(chip8);
-            chip8.update_timers(sdl_handler);
         }
 
+        chip8.update_timers(sdl_handler);
         gui.begin_frame(sdl_handler);
         gui.draw_gui(chip8);
 

@@ -10,7 +10,6 @@
 #include <iostream>
 #include <limits>
 #include <random>
-#include <utility>
 #include <string>
 #include <vector>
 
@@ -57,23 +56,31 @@ instruction_history::instruction_history()
 
 }
 
-void instruction_history::add_instruction(uint16 memory_address, instruction& instr)
+void instruction_history::add_instruction(const std::string& mode, uint16 memory_address, instruction& instr)
 {
     _ip = (_ip + 1) % MAX_INSTRUCTION_HISTORY;
-    _instructions[_ip] = std::make_pair(memory_address, instr);
+    instruction_debug new_entry
+    {
+        .mode = mode,
+        .memory_address = memory_address,
+        .instruction_ = instr
+    };
+
+    _instructions[_ip] = new_entry;
 }
 
 void instruction_history::log_last_instruction() const noexcept
 {
-    const std::pair<uint16, instruction>& last_instruction = _instructions[_ip];
+    const instruction_debug& last_instruction = _instructions[_ip];
     std::ios_base::fmtflags flags = std::cout.flags();
-    std::cout << "Address: [0x" << std::uppercase << std::hex << std::setw(4) << std::setfill('0') << last_instruction.first
-              << "]   Instruction: [0x" << std::setw(4) << std::setfill('0') << last_instruction.second.opcode
-              << "]   Description: [" << get_instruction_description(last_instruction.second.opcode) << "]\n";
+    std::cout << "[" << last_instruction.mode << "] "
+              << "Address: [0x" << std::uppercase << std::hex << std::setw(4) << std::setfill('0') << last_instruction.memory_address
+              << "]   Instruction: [0x" << std::setw(4) << std::setfill('0') << last_instruction.instruction_.opcode
+              << "]   Description: [" << get_instruction_description(last_instruction.instruction_.opcode) << "]\n";
     std::cout.flags(flags);
 }
 
-const std::pair<uint16, instruction>& instruction_history::get_instruction(uint32 index) const
+const instruction_debug& instruction_history::get_instruction(uint32 index) const
 {
     if (index >= MAX_INSTRUCTION_HISTORY)
         throw std::out_of_range("Index out of range");
@@ -85,7 +92,7 @@ uint32 instruction_history::get_size() const noexcept { return MAX_INSTRUCTION_H
 
 void instruction_history::clear()
 {
-    std::fill(_instructions.begin(), _instructions.end(), std::make_pair<uint16, instruction>(0x00, instruction()));
+    std::fill(_instructions.begin(), _instructions.end(), instruction_debug());
 }
 
 const std::string& instruction_history::get_instruction_description(uint16 opcode) const noexcept
@@ -118,10 +125,11 @@ JChip8::JChip8(uint16 ips_)
     , keypad{ 0 }
     , state{ emulator_state::running }
     , ips{ ips_ }
+    , mode{ chip8_mode::chip8 }
     , _rom_loaded{ false }
     , _draw_flag{ false }
-    , _current_instruction{}
     , _instruction_history{ new instruction_history() }
+    , _current_instruction{}
     , _rng(std::random_device()())
 {
     init_state();
@@ -158,7 +166,7 @@ bool JChip8::rom_loaded() const noexcept
 void JChip8::emulate_cycle()
 {
     instruction instr = fetch_instruction();
-    _instruction_history->add_instruction(pc, instr);
+    _instruction_history->add_instruction(mode_tostr(), pc, instr);
     pc += 2;
 
 #ifdef DEBUG_INSTRUCTIONS
@@ -580,6 +588,23 @@ uint8 JChip8::generate_random_number()
 {
     static std::uniform_int_distribution<int> uid(0, std::numeric_limits<uint8>::max());
     return uid(_rng);
+}
+
+std::string JChip8::mode_tostr()
+{
+    switch (mode)
+    {
+        case chip8_mode::chip8:
+        {
+            return std::string("chip8");
+            break;
+        }
+        case chip8_mode::superchip:
+        {
+            return std::string("superchip");
+            break;
+        }
+    }
 }
 
 #pragma warning(pop)
